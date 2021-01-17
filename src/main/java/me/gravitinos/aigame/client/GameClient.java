@@ -4,14 +4,15 @@ import lombok.Getter;
 import me.gravitinos.aigame.client.player.ClientPlayer;
 import me.gravitinos.aigame.client.player.PacketProviderPlayer;
 import me.gravitinos.aigame.client.render.block.BlockRender;
-import me.gravitinos.aigame.client.render.block.BlockRenderRegistryInitializer;
+import me.gravitinos.aigame.client.world.ClientWorld;
 import me.gravitinos.aigame.common.RegistryInitializer;
 import me.gravitinos.aigame.common.blocks.GameBlock;
 import me.gravitinos.aigame.common.connection.Packet;
 import me.gravitinos.aigame.common.connection.PlayerConnection;
 import me.gravitinos.aigame.common.entity.*;
 import me.gravitinos.aigame.common.item.ItemStack;
-import me.gravitinos.aigame.common.map.GameWorld;
+import me.gravitinos.aigame.common.packet.PacketInPlayerInfo;
+import me.gravitinos.aigame.common.packet.PacketOutPlayerPositionVelocity;
 import me.gravitinos.aigame.common.util.Vector;
 
 import javax.swing.*;
@@ -21,6 +22,7 @@ import java.awt.image.BufferedImage;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
+import java.util.UUID;
 
 public class GameClient {
 
@@ -43,14 +45,14 @@ public class GameClient {
 
     private List<Integer> pressedKeys = new ArrayList<>();
 
-    public GameWorld world;
+    public ClientWorld world;
     public PlayerCamera camera;
     public ClientPlayer player;
 
     public void init() {
 
         RegistryInitializer.init();
-        BlockRenderRegistryInitializer.init();
+        ClientRegistryInitializer.init();
 
         //        String remote = "";
 //        int remotePort = 6969;
@@ -68,17 +70,20 @@ public class GameClient {
         };
 
         this.camera = new PlayerCamera(new Vector(0, 0), PlayerCamera.scale(CAMERA_WIDTH_PIXELS, DEFAULT_SCALE), PlayerCamera.scale(CAMERA_HEIGHT_PIXELS, DEFAULT_SCALE), DEFAULT_SCALE);
-        this.world = new GameWorld("World");
+        this.world = new ClientWorld("World");
 
         player = new ClientPlayer(world, connection);
 
+        connection.sendPacket(new PacketInPlayerInfo(UUID.randomUUID(), "Test Name"));
+        Packet packet = connection.nextPacket();
+        if(!(packet instanceof PacketOutPlayerPositionVelocity))
+            return;
+        PacketOutPlayerPositionVelocity posVel = (PacketOutPlayerPositionVelocity) packet;
+        player.setPositionInternal(posVel.position);
+        player.setVelocityInternal(posVel.velocity);
+
         //Create chunks
         Random rand = new Random(System.currentTimeMillis());
-
-        for (int i = 0; i < 3000; i++) {
-            EntityStar star = new EntityStar(world);
-            star.setPosition(new Vector(rand.nextInt(400) - 200, rand.nextInt(400) - 200));
-        }
 
         //Create player
         world.getChunkAt((int) Math.floor(player.getPosition().getX()) >> 4, (int) Math.floor(player.getPosition().getY()) >> 4)
@@ -155,14 +160,7 @@ public class GameClient {
             @Override
             public void mouseClicked(MouseEvent e) {
                 if (e.getButton() == MouseEvent.BUTTON1) {
-                    double mass = rand.nextDouble() * 2 + 1;
-                    int strength = (int) (mass * 3);
-                    if (rand.nextBoolean() && rand.nextBoolean() || true) {
-                        mass = 200;
-                        strength = 40;
-                    }
-                    EntityMagnet magnet = new EntityMagnet(world, strength, mass);
-                    magnet.setPosition(camera.fromScreenCoordinates(new Vector(e.getX() - 7, e.getY() - 30)));
+
                 }
             }
 
@@ -341,6 +339,13 @@ public class GameClient {
         PacketProviderPlayer packetProviderPlayer = new PacketProviderPlayer();
         List<Packet> packets = packetProviderPlayer.getPackets(player.getDataWatcher());
         packets.forEach((p) -> player.getConnection().sendPacket(p));
+
+        //Receive packets
+        List<Packet> received = new ArrayList<>();
+        while(player.getConnection().hasNextPacket()) {
+            received.add(player.getConnection().nextPacket());
+        }
+
     }
 
     public void updatePlayer(double multiplier) {

@@ -58,7 +58,7 @@ public abstract class GameEntity {
 
     public synchronized void tick() {
         if (frictionFactor != 0) {
-            if(!this.velocity.isZero()) {
+            if (!this.velocity.isZero()) {
                 this.velocity = this.velocity.multiply(1D - (0.05D * frictionFactor));
                 if (this.velocity.getX() < 0.005D) {
                     this.velocity = this.velocity.setX(0D);
@@ -78,33 +78,36 @@ public abstract class GameEntity {
         this.dataWatcher.set(W_FRICTION_FACTOR, frictionFactor);
     }
 
+    public synchronized void setVelocityInternal(Vector velocity) {
+        this.velocity = velocity;
+        this.dataWatcher.setState(W_VELOCITY, velocity, false);
+    }
+
     public synchronized void setVelocity(Vector velocity) {
         this.velocity = velocity;
         this.dataWatcher.set(W_VELOCITY, velocity);
     }
 
+    public synchronized void setPositionInternal(Vector position) {
+        setPosition(position, false);
+    }
+
     public synchronized void setPosition(Vector position) {
+        setPosition(position, true);
+    }
+
+
+    private synchronized void setPosition(Vector position, boolean record) {
         if (getPosition() != null && getPosition().equals(position))
             return;
-        Vector flooredPos = getPosition() != null ? getPosition().floor() : null;
-        Vector flooredNewPos = position.floor();
-        if (flooredPos == null) {
 
-            //Spawning
-            Chunk newChunk = world.getChunkAt((int) flooredNewPos.getX() >> 4, (int) flooredNewPos.getY() >> 4);
-            newChunk.addEntity(this);
-        } else if ((int) flooredPos.getX() >> 4 != (int) flooredNewPos.getX() >> 4 ||
-                (int) flooredPos.getY() >> 4 != (int) flooredNewPos.getY() >> 4) {
+        world.entityUpdatePosition(this, getPosition(), position);
 
-            //Entering new chunk
-            Chunk currentChunk = world.getChunkAt((int) flooredPos.getX() >> 4, (int) flooredPos.getY() >> 4);
-            currentChunk.removeEntity(this.getId());
-            Chunk newChunk = world.getChunkAt((int) flooredNewPos.getX() >> 4, (int) flooredNewPos.getY() >> 4);
-            if (!newChunk.getEntityList().contains(this))
-                newChunk.addEntity(this);
+        if (record) {
+            dataWatcher.set(W_POSITION, position);
+        } else {
+            dataWatcher.setState(W_POSITION, position, false);
         }
-
-        dataWatcher.set(W_POSITION, position);
 
         this.position = position;
     }

@@ -12,6 +12,10 @@ public class PacketInPlayerMove extends Packet {
         this.movement = movement;
     }
 
+    public PacketInPlayerMove(GravSerializer serializer) {
+        this.movement = new Vector(serializer.readDouble(), serializer.readDouble());
+    }
+
     @Override
     public void serialize(GravSerializer serializer) {
         serializer.writeDouble(movement.getX());

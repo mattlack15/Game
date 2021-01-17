@@ -1,7 +1,5 @@
 package me.gravitinos.aigame.client.render.block;
 
-import me.gravitinos.aigame.client.PlayerCamera;
-import me.gravitinos.aigame.common.blocks.Air;
 import me.gravitinos.aigame.common.blocks.GameBlock;
 import me.gravitinos.aigame.common.util.Vector;
 

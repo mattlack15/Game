@@ -2,7 +2,7 @@ package me.gravitinos.aigame.common.blocks;
 
 import java.awt.*;
 
-public class Air extends GameBlock {
+public class BlockAir extends GameBlock {
 
     public static Image texture;
     static {

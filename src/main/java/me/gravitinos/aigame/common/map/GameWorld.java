@@ -31,9 +31,13 @@ public class GameWorld {
 
     public synchronized Chunk getChunkAt(int cx, int cy) {
         Chunk chunk = loadedChunks.get(new BlockVector(cx, cy));
-        if(chunk != null)
+        if (chunk != null)
             return chunk;
         return createChunk(cx, cy);
+    }
+
+    public synchronized Chunk getLoadedChunkAt(int cx, int cy) {
+        return getChunkAt0(cx, cy);
     }
 
     private synchronized Chunk getChunkAt0(int cx, int cy) {
@@ -84,10 +88,10 @@ public class GameWorld {
 
         double radiusSquared = radius * radius;
 
-        for(int x = xStart; x <= xEnd; x++) {
+        for (int x = xStart; x <= xEnd; x++) {
             for (int y = yStart; y <= yEnd; y++) {
                 Chunk chunk = getChunkAt0(x, y);
-                if(chunk == null)
+                if (chunk == null)
                     continue;
                 chunk.getEntityList(entities);
             }
@@ -105,15 +109,36 @@ public class GameWorld {
     public synchronized List<EntityPlayer> getPlayers() {
         List<EntityPlayer> players = new ArrayList<>();
         this.getEntities().forEach(e -> {
-            if(e instanceof EntityPlayer)
+            if (e instanceof EntityPlayer)
                 players.add((EntityPlayer) e);
         });
         return players;
     }
 
+    public synchronized void entityUpdatePosition(GameEntity entity, Vector oldPos, Vector newPos) {
+
+        Chunk chunk;
+
+        if (oldPos != null) {
+            if ((int) oldPos.getX() >> 4 == (int) newPos.getX() >> 4 &&
+                    (int) oldPos.getY() >> 4 == (int) newPos.getY() >> 4) {
+                return;
+            }
+
+            chunk = getLoadedChunkAt((int) oldPos.getX() >> 4, (int) oldPos.getY() >> 4);
+            if (chunk != null) {
+                chunk.removeEntity(entity.getId());
+            }
+        }
+
+        chunk = getChunkAt((int) newPos.getX() >> 4, (int) newPos.getY() >> 4);
+        if (!chunk.getEntityList().contains(entity))
+            chunk.addEntity(entity);
+    }
+
     public synchronized EntityPlayer getPlayer(UUID id) {
-        for(EntityPlayer players : getPlayers())
-            if(players.getId().equals(id))
+        for (EntityPlayer players : getPlayers())
+            if (players.getId().equals(id))
                 return players;
         return null;
     }
@@ -121,15 +146,16 @@ public class GameWorld {
     public synchronized void tick() {
         List<EntityPlayer> players = getPlayers();
         Iterator<Map.Entry<BlockVector, Chunk>> it = this.loadedChunks.entrySet().iterator();
-        OUTER: while(it.hasNext()) {
+        OUTER:
+        while (it.hasNext()) {
             Map.Entry<BlockVector, Chunk> entry = it.next();
             Chunk c = entry.getValue();
             for (EntityPlayer player : players) {
-                if(player.getPosition().distanceSquared(c.getPosition().multiply(16)) < 200 * 200)
+                if (player.getPosition().distanceSquared(c.getPosition().multiply(16)) < 200 * 200)
                     continue OUTER;
             }
             for (GameEntity entity : c.getEntityList()) {
-                if(entity instanceof EntityPlayer)
+                if (entity instanceof EntityPlayer)
                     continue OUTER;
             }
             it.remove();

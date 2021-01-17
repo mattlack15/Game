@@ -17,6 +17,11 @@ public class PacketInPlayerInfo extends Packet {
         this.name = name;
     }
 
+    public PacketInPlayerInfo(GravSerializer serializer) {
+        this.id = serializer.readUUID();
+        this.name = serializer.readString();
+    }
+
     @Override
     public void serialize(GravSerializer serializer) {
         serializer.writeUUID(id);

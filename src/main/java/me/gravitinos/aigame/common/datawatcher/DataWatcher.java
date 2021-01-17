@@ -49,6 +49,23 @@ public class DataWatcher {
         }
     }
 
+    public <T> void setState(DataWatcherObject object, T value, boolean dirty) {
+        lock.writeLock().lock();
+        try {
+            int id = object.id;
+            //Get entry
+            entryMap.putIfAbsent(id, new DataWatcherEntry<>());
+            DataWatcherEntry entry = entryMap.get(id);
+            if(!Objects.equals(entry.obj, value)) {
+                entry.obj = value;
+                entry.dirty = dirty;
+            }
+            entry.meta = object.isMeta;
+        } finally {
+            lock.writeLock().unlock();
+        }
+    }
+
     public <T> T get(DataWatcherObject object) {
         lock.readLock().lock();
         try {

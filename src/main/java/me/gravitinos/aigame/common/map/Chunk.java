@@ -28,6 +28,22 @@ public class Chunk {
         blocks[bx << 4 | by] = id;
     }
 
+    public synchronized void exportBlocks(int[] array) {
+        if(array.length < blocks.length)
+            throw new IllegalStateException("Array length must be >= chunk size (" + blocks.length + ")");
+        System.arraycopy(blocks, 0, array, 0, blocks.length);
+    }
+
+    public synchronized void setBlockIndex(int index, int block) {
+        blocks[index] = block;
+    }
+
+    public synchronized void importBlocks(int[] array) {
+        if(array.length > blocks.length)
+            throw new IllegalStateException("Array must be <= chunk size (" + blocks.length + ")");
+        System.arraycopy(array, 0, blocks, 0, blocks.length);
+    }
+
     public synchronized GameBlock getBlock(int bx, int by) {
         return GameBlock.getBlock(blocks[bx << 4 | by]);
     }
