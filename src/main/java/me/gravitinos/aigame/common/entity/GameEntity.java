@@ -10,6 +10,7 @@ import me.gravitinos.aigame.common.datawatcher.DataWatcherObject;
 import me.gravitinos.aigame.common.map.Chunk;
 import me.gravitinos.aigame.common.map.GameWorld;
 import me.gravitinos.aigame.common.util.AxisAlignedBoundingBox;
+import me.gravitinos.aigame.common.util.BlockVector;
 import me.gravitinos.aigame.common.util.Vector;
 
 import java.util.UUID;
@@ -38,7 +39,7 @@ public abstract class GameEntity {
     private double frictionFactor = 1D;
 
     @Getter
-    @Setter(value = AccessLevel.MODULE)
+    @Setter
     private UUID id = UUID.randomUUID();
 
     public GameEntity(GameWorld world) {
@@ -49,10 +50,6 @@ public abstract class GameEntity {
     public synchronized void tick1(double multiplier) {
         if (!this.velocity.isZero()) {
             this.setPosition(position.add(this.velocity.multiply(multiplier)));
-            Chunk currentChunk = world.getChunkAt((int) getPosition().floor().getX() >> 4, (int) getPosition().floor().getY() >> 4);
-            if (!currentChunk.getEntityList().contains(this)) {
-                System.out.println("Not in chunk");
-            }
         }
     }
 
@@ -60,10 +57,10 @@ public abstract class GameEntity {
         if (frictionFactor != 0) {
             if (!this.velocity.isZero()) {
                 this.velocity = this.velocity.multiply(1D - (0.05D * frictionFactor));
-                if (this.velocity.getX() < 0.005D) {
+                if (this.velocity.getX() < 0.005D && this.velocity.getX() > -0.005D) {
                     this.velocity = this.velocity.setX(0D);
                 }
-                if (this.velocity.getY() < 0.005D) {
+                if (this.velocity.getY() < 0.005D && this.velocity.getY() > -0.005D) {
                     this.velocity = this.velocity.setY(0D);
                 }
             }
@@ -97,13 +94,13 @@ public abstract class GameEntity {
     }
 
 
-    private synchronized void setPosition(Vector position, boolean record) {
+    public synchronized void setPosition(Vector position, boolean makeDirty) {
         if (getPosition() != null && getPosition().equals(position))
             return;
 
         world.entityUpdatePosition(this, getPosition(), position);
 
-        if (record) {
+        if (makeDirty) {
             dataWatcher.set(W_POSITION, position);
         } else {
             dataWatcher.setState(W_POSITION, position, false);
@@ -112,9 +109,14 @@ public abstract class GameEntity {
         this.position = position;
     }
 
+    public synchronized BlockVector getChunkLocation() {
+        return new BlockVector((int) getPosition().getX() >> 4, (int) getPosition().getY() >> 4);
+    }
+
     public synchronized void remove() {
         Vector flooredPos = getPosition().floor();
         Chunk currentChunk = world.getChunkAt((int) flooredPos.getX() >> 4, (int) flooredPos.getY() >> 4);
         currentChunk.removeEntity(this.getId());
+        world.entityUpdatePosition(this, getPosition(), null);
     }
 }

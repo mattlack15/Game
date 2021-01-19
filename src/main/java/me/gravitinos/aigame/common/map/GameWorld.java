@@ -14,6 +14,8 @@ public class GameWorld {
     @Getter
     private String name;
 
+    private List<EntityPlayer> players = new ArrayList<>();
+
     public GameWorld(String name) {
         this.name = name;
     }
@@ -107,15 +109,24 @@ public class GameWorld {
     }
 
     public synchronized List<EntityPlayer> getPlayers() {
-        List<EntityPlayer> players = new ArrayList<>();
-        this.getEntities().forEach(e -> {
-            if (e instanceof EntityPlayer)
-                players.add((EntityPlayer) e);
-        });
-        return players;
+        return new ArrayList<>(players);
+    }
+
+    public synchronized void playerJoinWorld(EntityPlayer player) {
+        if (!players.contains(player))
+            this.players.add(player);
+    }
+
+    public synchronized void playerLeaveWorld(EntityPlayer player) {
+        this.players.remove(player);
     }
 
     public synchronized void entityUpdatePosition(GameEntity entity, Vector oldPos, Vector newPos) {
+
+        //Maybe call an event here
+
+        if (entity instanceof EntityPlayer) //Don't do any chunk stuff with players
+            return;
 
         Chunk chunk;
 
@@ -131,9 +142,11 @@ public class GameWorld {
             }
         }
 
-        chunk = getChunkAt((int) newPos.getX() >> 4, (int) newPos.getY() >> 4);
-        if (!chunk.getEntityList().contains(entity))
-            chunk.addEntity(entity);
+        if (newPos != null) {
+            chunk = getChunkAt((int) newPos.getX() >> 4, (int) newPos.getY() >> 4);
+            if (!chunk.getEntityList().contains(entity))
+                chunk.addEntity(entity);
+        }
     }
 
     public synchronized EntityPlayer getPlayer(UUID id) {

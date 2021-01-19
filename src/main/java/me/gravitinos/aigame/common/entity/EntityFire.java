@@ -10,8 +10,8 @@ import java.util.Random;
 public class EntityFire extends GameEntity {
 
     private long life;
-    private int color;
-    private int size;
+    public int color;
+    public int size;
     private int grad;
 
     private static Random random = new Random(System.currentTimeMillis());

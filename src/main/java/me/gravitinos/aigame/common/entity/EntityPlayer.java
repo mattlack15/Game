@@ -19,6 +19,7 @@ public abstract class EntityPlayer extends GameEntity {
 
     public EntityPlayer(GameWorld world, PlayerConnection connection) {
         super(world);
+        this.setFrictionFactor(0D);
         this.connection = connection;
     }
 

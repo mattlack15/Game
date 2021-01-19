@@ -11,9 +11,9 @@ import me.gravitinos.aigame.common.util.Vector;
 import java.util.ArrayList;
 import java.util.List;
 
-public class PacketProviderPlayer extends PacketProvider {
+public class PacketProviderPlayer extends PacketProvider<ClientPlayer> {
     @Override
-    public List<Packet> getPackets(DataWatcher dataWatcher) {
+    public List<Packet> getPackets(ClientPlayer player, DataWatcher dataWatcher) {
         List<Packet> packets = new ArrayList<>();
 
         if(dataWatcher.setDirty(GameEntity.W_POSITION, false)) {

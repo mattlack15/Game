@@ -4,6 +4,6 @@ import me.gravitinos.aigame.common.connection.Packet;
 
 import java.util.List;
 
-public abstract class PacketProvider {
-    public abstract List<Packet> getPackets(DataWatcher dataWatcher);
+public abstract class PacketProvider<T> {
+    public abstract List<Packet> getPackets(T obj, DataWatcher dataWatcher);
 }

@@ -49,9 +49,9 @@ public class SecuredTCPServer implements AutoCloseable {
                 new Thread(() -> {
                     try {
                         SecuredTCPConnection connection = new SecuredTCPConnection(finalSocket);
-                        GravSerializer serializer = connection.next();
+                        connection.next();
 
-                        serializer = new GravSerializer();
+                        GravSerializer serializer = new GravSerializer();
                         serializer.writeString("RSA");
                         serializer.writeByteArray(keyPair.getPublic().getEncoded());
 

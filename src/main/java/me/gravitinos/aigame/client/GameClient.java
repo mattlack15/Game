@@ -1,9 +1,11 @@
 package me.gravitinos.aigame.client;
 
 import lombok.Getter;
+import me.gravitinos.aigame.client.packet.PacketHandler;
 import me.gravitinos.aigame.client.player.ClientPlayer;
 import me.gravitinos.aigame.client.player.PacketProviderPlayer;
 import me.gravitinos.aigame.client.render.block.BlockRender;
+import me.gravitinos.aigame.client.render.entity.EntityRender;
 import me.gravitinos.aigame.client.world.ClientWorld;
 import me.gravitinos.aigame.common.RegistryInitializer;
 import me.gravitinos.aigame.common.blocks.GameBlock;
@@ -11,8 +13,10 @@ import me.gravitinos.aigame.common.connection.Packet;
 import me.gravitinos.aigame.common.connection.PlayerConnection;
 import me.gravitinos.aigame.common.entity.*;
 import me.gravitinos.aigame.common.item.ItemStack;
+import me.gravitinos.aigame.common.map.Chunk;
 import me.gravitinos.aigame.common.packet.PacketInPlayerInfo;
-import me.gravitinos.aigame.common.packet.PacketOutPlayerPositionVelocity;
+import me.gravitinos.aigame.common.packet.PacketOutMapChunk;
+import me.gravitinos.aigame.common.packet.PacketOutEntityPositionVelocity;
 import me.gravitinos.aigame.common.util.Vector;
 
 import javax.swing.*;
@@ -64,9 +68,48 @@ public class GameClient {
 //            throw new RuntimeException(e);
 //        }
 //        PlayerConnection connection = new PlayerConnection(client.getConnection());
+        Random random = new Random(System.currentTimeMillis());
         PlayerConnection connection = new PlayerConnection(null) {
+
+            List<Packet> toSend = new ArrayList<>();
+            boolean created = false;
+
+            private void create() {
+                if(created)
+                    return;
+
+                PacketOutEntityPositionVelocity packetOutPlayerPositionVelocity =
+                        new PacketOutEntityPositionVelocity(player.getId(), new Vector(0, 0), new Vector(0, 0));
+                toSend.add(packetOutPlayerPositionVelocity);
+
+
+                GameBlock block = GameBlock.getBlock(1);
+                for(int i = 0; i < 50; i++) {
+                    Chunk chunk = new Chunk(new Vector(random.nextInt(6) - 3, random.nextInt(6) - 3));
+                    for (int j = 0; j < 20; j++) {
+                        chunk.setBlock(random.nextInt(16), random.nextInt(16), block);
+                    }
+                    PacketOutMapChunk packetOutMapChunk = new PacketOutMapChunk(chunk);
+                    toSend.add(packetOutMapChunk);
+                }
+
+                created = true;
+            }
+
             @Override
             public void sendPacket(Packet packet) {}
+
+            @Override
+            public boolean hasNextPacket() {
+                create();
+                return !toSend.isEmpty();
+            }
+
+            @Override
+            public Packet nextPacket() {
+                create();
+                return toSend.remove(0);
+            }
         };
 
         this.camera = new PlayerCamera(new Vector(0, 0), PlayerCamera.scale(CAMERA_WIDTH_PIXELS, DEFAULT_SCALE), PlayerCamera.scale(CAMERA_HEIGHT_PIXELS, DEFAULT_SCALE), DEFAULT_SCALE);
@@ -76,9 +119,9 @@ public class GameClient {
 
         connection.sendPacket(new PacketInPlayerInfo(UUID.randomUUID(), "Test Name"));
         Packet packet = connection.nextPacket();
-        if(!(packet instanceof PacketOutPlayerPositionVelocity))
+        if(!(packet instanceof PacketOutEntityPositionVelocity))
             return;
-        PacketOutPlayerPositionVelocity posVel = (PacketOutPlayerPositionVelocity) packet;
+        PacketOutEntityPositionVelocity posVel = (PacketOutEntityPositionVelocity) packet;
         player.setPositionInternal(posVel.position);
         player.setVelocityInternal(posVel.velocity);
 
@@ -266,6 +309,9 @@ public class GameClient {
                 Vector pos = camera.fromScreenCoordinates(new Vector(x, y)).floor();
 
                 //Get block
+                if(world.getLoadedChunkAt((int) pos.getX() >> 4, (int) pos.getY() >> 4) == null)
+                    continue;
+
                 GameBlock block = world.getBlockAt(pos);
 
                 //Get renderer
@@ -287,7 +333,15 @@ public class GameClient {
         for (GameEntity entity : world.getEntities()) {
             if (entity.getPosition().distanceSquared(camera.getPosition()) < num * num) {
                 //TODO
-
+                Class<?> clazz = entity.getClass();
+                if(entity instanceof ClientPlayer)
+                    clazz = clazz.getSuperclass();
+                EntityRender renderer = EntityRender.REGISTRY.get(clazz);
+                if(renderer == null) {
+                    System.out.println("Could not render entity type: " + entity.getClass().getName());
+                    continue;
+                }
+                renderer.draw(graphics, entity, camera.toScreenCoordinates(entity.getPosition()), camera.getScale() * PlayerCamera.BASE_SCALE_MULTIPLIER);
             }
         }
 
@@ -335,15 +389,26 @@ public class GameClient {
     public void tick() {
         world.tick();
 
+        world.getEntities().forEach(GameEntity::tick);
+
         //Send packets
         PacketProviderPlayer packetProviderPlayer = new PacketProviderPlayer();
-        List<Packet> packets = packetProviderPlayer.getPackets(player.getDataWatcher());
+        List<Packet> packets = packetProviderPlayer.getPackets(player, player.getDataWatcher());
         packets.forEach((p) -> player.getConnection().sendPacket(p));
 
         //Receive packets
         List<Packet> received = new ArrayList<>();
         while(player.getConnection().hasNextPacket()) {
             received.add(player.getConnection().nextPacket());
+        }
+
+        for (Packet packet : received) {
+            PacketHandler handler = PacketHandler.REGISTRY.get(packet.getClass());
+            if(handler == null) {
+                System.out.println("Could not handle packet type: " + packet.getClass().getName());
+                continue;
+            }
+            handler.handlePacket(packet, this);
         }
 
     }
