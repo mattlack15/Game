@@ -27,8 +27,12 @@ public class GameWorld {
     public synchronized Chunk createChunk(int cx, int cy) {
         Vector pos = new Vector(cx, cy);
         Chunk chunk = new Chunk(pos);
+        initChunk(chunk);
         this.loadedChunks.put(new BlockVector(cx, cy), chunk);
         return chunk;
+    }
+
+    protected void initChunk(Chunk chunk) {
     }
 
     public synchronized Chunk getChunkAt(int cx, int cy) {

@@ -6,7 +6,7 @@ import net.ultragrav.serializer.GravSerializer;
 
 public class PacketInPlayerMove extends Packet {
 
-    private Vector movement;
+    public Vector movement;
 
     public PacketInPlayerMove(Vector movement) {
         this.movement = movement;

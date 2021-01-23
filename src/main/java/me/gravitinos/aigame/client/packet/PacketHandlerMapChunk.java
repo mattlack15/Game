@@ -5,7 +5,7 @@ import me.gravitinos.aigame.common.connection.Packet;
 import me.gravitinos.aigame.common.map.Chunk;
 import me.gravitinos.aigame.common.packet.PacketOutMapChunk;
 
-public class PacketHandlerMapChunk implements PacketHandler {
+public class PacketHandlerMapChunk implements PacketHandlerClient {
 
     @Override
     public void handlePacket(Packet pack, GameClient client) {

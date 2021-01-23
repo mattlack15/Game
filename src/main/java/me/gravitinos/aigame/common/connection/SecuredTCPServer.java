@@ -29,6 +29,9 @@ public class SecuredTCPServer implements AutoCloseable {
         this.port = port;
     }
 
+    public int getPort() {
+        return this.port;
+    }
 
     public void start() throws IOException, NoSuchAlgorithmException, NoSuchPaddingException {
         keyPair = KeyPairGenerator.getInstance("RSA").generateKeyPair();

@@ -13,7 +13,7 @@ import java.util.List;
 
 public class PacketProviderPlayer extends PacketProvider<ClientPlayer> {
     @Override
-    public List<Packet> getPackets(ClientPlayer player, DataWatcher dataWatcher) {
+    public List<Packet> getPacketsSelf(ClientPlayer player, DataWatcher dataWatcher) {
         List<Packet> packets = new ArrayList<>();
 
         if(dataWatcher.setDirty(GameEntity.W_POSITION, false)) {

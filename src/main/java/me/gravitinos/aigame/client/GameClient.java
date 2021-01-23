@@ -1,7 +1,7 @@
 package me.gravitinos.aigame.client;
 
 import lombok.Getter;
-import me.gravitinos.aigame.client.packet.PacketHandler;
+import me.gravitinos.aigame.client.packet.PacketHandlerClient;
 import me.gravitinos.aigame.client.player.ClientPlayer;
 import me.gravitinos.aigame.client.player.PacketProviderPlayer;
 import me.gravitinos.aigame.client.render.block.BlockRender;
@@ -11,22 +11,25 @@ import me.gravitinos.aigame.common.RegistryInitializer;
 import me.gravitinos.aigame.common.blocks.GameBlock;
 import me.gravitinos.aigame.common.connection.Packet;
 import me.gravitinos.aigame.common.connection.PlayerConnection;
+import me.gravitinos.aigame.common.connection.SecuredTCPClient;
 import me.gravitinos.aigame.common.entity.*;
 import me.gravitinos.aigame.common.item.ItemStack;
-import me.gravitinos.aigame.common.map.Chunk;
 import me.gravitinos.aigame.common.packet.PacketInPlayerInfo;
-import me.gravitinos.aigame.common.packet.PacketOutMapChunk;
 import me.gravitinos.aigame.common.packet.PacketOutEntityPositionVelocity;
 import me.gravitinos.aigame.common.util.Vector;
 
+import javax.crypto.NoSuchPaddingException;
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.*;
 import java.awt.image.BufferedImage;
+import java.io.IOException;
+import java.security.InvalidKeyException;
+import java.security.NoSuchAlgorithmException;
+import java.security.spec.InvalidKeySpecException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
-import java.util.UUID;
 
 public class GameClient {
 
@@ -58,66 +61,24 @@ public class GameClient {
         RegistryInitializer.init();
         ClientRegistryInitializer.init();
 
-        //        String remote = "";
-//        int remotePort = 6969;
-//
-//        SecuredTCPClient client;
-//        try {
-//            client = new SecuredTCPClient(remote, remotePort);
-//        } catch (IOException | NoSuchPaddingException | NoSuchAlgorithmException | InvalidKeySpecException | InvalidKeyException e) {
-//            throw new RuntimeException(e);
-//        }
-//        PlayerConnection connection = new PlayerConnection(client.getConnection());
+        String remote = "127.0.0.1";
+        int remotePort = 6969;
+
+        SecuredTCPClient client;
+        try {
+            client = new SecuredTCPClient(remote, remotePort);
+        } catch (IOException | NoSuchPaddingException | NoSuchAlgorithmException | InvalidKeySpecException | InvalidKeyException e) {
+            throw new RuntimeException(e);
+        }
+        PlayerConnection connection = new PlayerConnection(client.getConnection());
         Random random = new Random(System.currentTimeMillis());
-        PlayerConnection connection = new PlayerConnection(null) {
-
-            List<Packet> toSend = new ArrayList<>();
-            boolean created = false;
-
-            private void create() {
-                if(created)
-                    return;
-
-                PacketOutEntityPositionVelocity packetOutPlayerPositionVelocity =
-                        new PacketOutEntityPositionVelocity(player.getId(), new Vector(0, 0), new Vector(0, 0));
-                toSend.add(packetOutPlayerPositionVelocity);
-
-
-                GameBlock block = GameBlock.getBlock(1);
-                for(int i = 0; i < 50; i++) {
-                    Chunk chunk = new Chunk(new Vector(random.nextInt(6) - 3, random.nextInt(6) - 3));
-                    for (int j = 0; j < 20; j++) {
-                        chunk.setBlock(random.nextInt(16), random.nextInt(16), block);
-                    }
-                    PacketOutMapChunk packetOutMapChunk = new PacketOutMapChunk(chunk);
-                    toSend.add(packetOutMapChunk);
-                }
-
-                created = true;
-            }
-
-            @Override
-            public void sendPacket(Packet packet) {}
-
-            @Override
-            public boolean hasNextPacket() {
-                create();
-                return !toSend.isEmpty();
-            }
-
-            @Override
-            public Packet nextPacket() {
-                create();
-                return toSend.remove(0);
-            }
-        };
 
         this.camera = new PlayerCamera(new Vector(0, 0), PlayerCamera.scale(CAMERA_WIDTH_PIXELS, DEFAULT_SCALE), PlayerCamera.scale(CAMERA_HEIGHT_PIXELS, DEFAULT_SCALE), DEFAULT_SCALE);
         this.world = new ClientWorld("World");
 
         player = new ClientPlayer(world, connection);
 
-        connection.sendPacket(new PacketInPlayerInfo(UUID.randomUUID(), "Test Name"));
+        connection.sendPacket(new PacketInPlayerInfo(player.getId(), "Test Name"));
         Packet packet = connection.nextPacket();
         if(!(packet instanceof PacketOutEntityPositionVelocity))
             return;
@@ -393,7 +354,7 @@ public class GameClient {
 
         //Send packets
         PacketProviderPlayer packetProviderPlayer = new PacketProviderPlayer();
-        List<Packet> packets = packetProviderPlayer.getPackets(player, player.getDataWatcher());
+        List<Packet> packets = packetProviderPlayer.getPacketsSelf(player, player.getDataWatcher());
         packets.forEach((p) -> player.getConnection().sendPacket(p));
 
         //Receive packets
@@ -403,7 +364,7 @@ public class GameClient {
         }
 
         for (Packet packet : received) {
-            PacketHandler handler = PacketHandler.REGISTRY.get(packet.getClass());
+            PacketHandlerClient handler = PacketHandlerClient.REGISTRY.get(packet.getClass());
             if(handler == null) {
                 System.out.println("Could not handle packet type: " + packet.getClass().getName());
                 continue;

@@ -10,8 +10,8 @@ import java.util.UUID;
  */
 public class PacketInPlayerInfo extends Packet {
 
-    private UUID id;
-    private String name;
+    public UUID id;
+    public String name;
     public PacketInPlayerInfo(UUID id, String name) {
         this.id = id;
         this.name = name;

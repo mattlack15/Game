@@ -7,6 +7,8 @@ import me.gravitinos.aigame.common.inventory.Inventory;
 import me.gravitinos.aigame.common.map.GameWorld;
 import me.gravitinos.aigame.common.util.Vector;
 
+import java.util.UUID;
+
 public class ServerPlayer extends EntityPlayer {
 
     private int renderDistance = 4;
@@ -16,8 +18,9 @@ public class ServerPlayer extends EntityPlayer {
     @Getter
     private PlayerChunkMap chunkMap = new PlayerChunkMap();
 
-    public ServerPlayer(GameWorld world, PlayerConnection connection) {
+    public ServerPlayer(GameWorld world, UUID id, String name,  PlayerConnection connection) {
         super(world, connection);
+        this.setId(id);
     }
 
     @Override

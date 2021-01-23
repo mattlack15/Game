@@ -14,6 +14,9 @@ import me.gravitinos.aigame.common.util.BlockVector;
 import me.gravitinos.aigame.common.util.Vector;
 
 import java.util.UUID;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 public abstract class GameEntity {
@@ -44,7 +47,8 @@ public abstract class GameEntity {
 
     public GameEntity(GameWorld world) {
         this.world = world;
-        this.setPosition(new Vector(0, 0));
+        this.setPositionInternal(new Vector(0, 0));
+        this.setVelocityInternal(new Vector(0, 0));
     }
 
     public synchronized void tick1(double multiplier) {

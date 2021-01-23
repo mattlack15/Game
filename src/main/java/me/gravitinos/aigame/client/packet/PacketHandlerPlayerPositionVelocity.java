@@ -5,12 +5,15 @@ import me.gravitinos.aigame.common.connection.Packet;
 import me.gravitinos.aigame.common.entity.GameEntity;
 import me.gravitinos.aigame.common.packet.PacketOutEntityPositionVelocity;
 
-public class PacketHandlerPlayerPositionVelocity implements PacketHandler {
+import java.util.UUID;
+
+public class PacketHandlerPlayerPositionVelocity implements PacketHandlerClient {
     @Override
     public void handlePacket(Packet pack, GameClient client) {
         PacketOutEntityPositionVelocity packet = (PacketOutEntityPositionVelocity) pack;
-        GameEntity entity = client.world.getEntity(((PacketOutEntityPositionVelocity) pack).entityId);
+        UUID id = packet.entityId;
+        GameEntity entity = client.player.getId().equals(id) ? client.player : client.world.getEntity(id);
         entity.setPositionInternal(packet.position);
-        entity.setVelocityInternal(packet.velocity);
+        //entity.setVelocityInternal(packet.velocity);
     }
 }

@@ -1,21 +1,31 @@
 package me.gravitinos.aigame.server;
 
+import me.gravitinos.aigame.client.GameClient;
+import me.gravitinos.aigame.common.RegistryInitializer;
 import me.gravitinos.aigame.common.connection.Packet;
+import me.gravitinos.aigame.common.connection.PlayerConnection;
 import me.gravitinos.aigame.common.connection.SecuredTCPConnection;
 import me.gravitinos.aigame.common.connection.SecuredTCPServer;
-import me.gravitinos.aigame.common.datawatcher.PacketProvider;
 import me.gravitinos.aigame.common.entity.EntityPlayer;
-import me.gravitinos.aigame.common.entity.GameEntity;
 import me.gravitinos.aigame.common.map.GameWorld;
+import me.gravitinos.aigame.common.packet.PacketInPlayerInfo;
+import me.gravitinos.aigame.common.packet.PacketInPlayerMove;
+import me.gravitinos.aigame.common.packet.PacketOutEntityPositionVelocity;
+import me.gravitinos.aigame.server.packet.handler.PacketHandlerPlayerMove;
+import me.gravitinos.aigame.server.packet.handler.PacketHandlerServer;
+import me.gravitinos.aigame.server.packet.provider.PacketProviderServerPlayer;
+import me.gravitinos.aigame.server.player.ServerPlayer;
+import me.gravitinos.aigame.server.world.ServerWorld;
 
 import javax.crypto.NoSuchPaddingException;
 import java.io.IOException;
 import java.security.NoSuchAlgorithmException;
 import java.util.List;
+import java.util.UUID;
 
 public class GameServer extends SecuredTCPServer {
 
-    private GameWorld world;
+    public GameWorld world;
 
     public GameServer(int port) {
         super(port);
@@ -25,10 +35,19 @@ public class GameServer extends SecuredTCPServer {
     public void start() throws IOException, NoSuchAlgorithmException, NoSuchPaddingException {
         super.start();
 
+        System.out.println("Starting server on port " + this.getPort());
+
+        initRegistries();
+
         //Create world
-        world = new GameWorld("The World");
+        world = new ServerWorld("The World");
 
         mainLoop();
+    }
+
+    private void initRegistries() {
+        RegistryInitializer.init();
+        PacketHandlerServer.REGISTRY.put(PacketInPlayerMove.class, new PacketHandlerPlayerMove());
     }
 
     private void mainLoop() {
@@ -42,7 +61,8 @@ public class GameServer extends SecuredTCPServer {
 
             long wait = 50 - (System.currentTimeMillis() - lastTick);
             try {
-                Thread.sleep(wait);
+                if (wait > 0)
+                    Thread.sleep(wait);
             } catch (InterruptedException e) {
                 e.printStackTrace();
             }
@@ -61,11 +81,64 @@ public class GameServer extends SecuredTCPServer {
         //Tick world
         world.tick();
 
-        //Get packets to send
+        //Send packets
+        sendPackets();
 
+        //Receive packets
+        receivePackets();
+
+    }
+
+    private void receivePackets() {
+        for (EntityPlayer player : world.getPlayers()) {
+            while (player.getConnection().hasNextPacket()) {
+                Packet packet = player.getConnection().nextPacket();
+                PacketHandlerServer packetHandler = PacketHandlerServer.REGISTRY.get(packet.getClass());
+                if (packetHandler == null) {
+                    System.out.println("Could not handle packet: " + packet.getClass());
+                    continue;
+                }
+                packetHandler.handlePacket((ServerPlayer) player, packet, this);
+            }
+        }
+    }
+
+    private void sendPackets() {
+        for (EntityPlayer player : world.getPlayers()) {
+            List<Packet> packets = new PacketProviderServerPlayer().getPacketsSelf((ServerPlayer) player, player.getDataWatcher());
+            for (Packet packet : packets) {
+                System.out.println("Sending packet " + packet.getClass().getName());
+                player.getConnection().sendPacket(packet);
+            }
+        }
     }
 
     @Override
     public void handleConnection(SecuredTCPConnection connection) {
+        try {
+            PacketInPlayerInfo info = connection.nextPacket();
+            UUID id = info.id;
+            String name = info.name;
+            PlayerConnection playerConnection = new PlayerConnection(connection);
+            ServerPlayer player = new ServerPlayer(world, id, name, playerConnection);
+            this.world.playerJoinWorld(player);
+            playerConnection.sendPacket(new PacketOutEntityPositionVelocity(id, player.getPosition(), player.getVelocity()));
+            System.out.println(name + " joined the server.");
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    public static void main(String[] args) throws InterruptedException {
+        new Thread(() -> {
+            try {
+                new GameServer(6969).start();
+            } catch (IOException | NoSuchPaddingException | NoSuchAlgorithmException e) {
+                e.printStackTrace();
+            }
+        }, "Server Thread").start();
+
+        Thread.sleep(10);
+        new GameClient();
     }
 }

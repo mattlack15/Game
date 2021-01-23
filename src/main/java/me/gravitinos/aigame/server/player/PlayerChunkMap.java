@@ -1,18 +1,26 @@
 package me.gravitinos.aigame.server.player;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class PlayerChunkMap {
+
     private static class ChunkLoc {
         public final int x;
         public final int y;
         public ChunkLoc(int x, int y) {
             this.x = x;
             this.y = y;
+
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+            ChunkLoc chunkLoc = (ChunkLoc) o;
+            return x == chunkLoc.x &&
+                    y == chunkLoc.y;
         }
 
         @Override
@@ -21,6 +29,8 @@ public class PlayerChunkMap {
         }
     }
 
+    private Object o = new Object();
+
     private Map<ChunkLoc, Object> loadedChunks = new ConcurrentHashMap<>();
 
     public boolean isLoaded(int cx, int cy) {
@@ -28,7 +38,7 @@ public class PlayerChunkMap {
     }
 
     public void setLoaded(int cx, int cy) {
-        loadedChunks.put(new ChunkLoc(cx, cy), null);
+        loadedChunks.put(new ChunkLoc(cx, cy), o);
     }
 
     public void clean(int x, int y, int renderDistance) {

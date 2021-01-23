@@ -12,8 +12,8 @@ public class PacketOutEntityPositionVelocity extends Packet {
     public Vector velocity;
     public UUID entityId;
 
-    public PacketOutEntityPositionVelocity(UUID playerId, Vector position, Vector velocity) {
-        this.entityId = playerId;
+    public PacketOutEntityPositionVelocity(UUID entityId, Vector position, Vector velocity) {
+        this.entityId = entityId;
         this.position = position;
         this.velocity = velocity;
     }
