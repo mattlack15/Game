@@ -10,11 +10,11 @@ public class PlayerConnection {
         this.connection = connection;
     }
 
-    public void sendPacket(Packet packet) {
+    public synchronized void sendPacket(Packet packet) {
         connection.sendPacket(packet);
     }
 
-    public Packet nextPacket() {
+    public synchronized Packet nextPacket() {
         return connection.nextPacket();
     }
 

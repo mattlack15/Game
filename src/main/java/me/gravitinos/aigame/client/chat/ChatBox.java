@@ -17,6 +17,14 @@ public class ChatBox implements Renderable {
     private static int LENGTH_PIXELS = 180;
     private static int LINE_HEIGHT = 30;
 
+    private int width;
+    private int height;
+
+    public ChatBox(int screenWidth, int screenHeight) {
+        this.width = screenWidth;
+        this.height = screenHeight;
+    }
+
     @Getter
     @Setter
     private volatile boolean typing = false;
@@ -49,9 +57,9 @@ public class ChatBox implements Renderable {
     @Override
     public void draw(Graphics graphics, PlayerCamera camera) {
 
-        int locX = GameClient.getFrame().getWidth() - WIDTH_PIXELS - 10;
+        int locX = width - WIDTH_PIXELS - 10;
 
-        int i = GameClient.getFrame().getHeight() - 50;
+        int i = height - 50;
         graphics.setFont(new Font("chat", Font.PLAIN, 16));
 
         if(isTyping()) {

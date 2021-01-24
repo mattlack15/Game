@@ -10,14 +10,15 @@ import me.gravitinos.aigame.common.map.GameWorld;
 import me.gravitinos.aigame.common.util.Vector;
 
 import java.awt.*;
+import java.util.UUID;
 
 public class ClientPlayer extends EntityPlayer {
 
     private Inventory inventory = new Inventory(5);
-    private ChatBox chatBox = new ChatBox();
+    private ChatBox chatBox = new ChatBox(1000, 1000); //TODO fix
 
-    public ClientPlayer(GameWorld world, PlayerConnection connection) {
-        super(world, connection);
+    public ClientPlayer(GameWorld world, UUID id, PlayerConnection connection) {
+        super(world, id, connection);
     }
 
     @Override

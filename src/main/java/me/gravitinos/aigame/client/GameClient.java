@@ -30,13 +30,14 @@ import java.security.spec.InvalidKeySpecException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
+import java.util.UUID;
 
 public class GameClient {
 
-    public static GameClient instance;
+    public GameClient instance;
 
     @Getter
-    private static JFrame frame;
+    private JFrame frame;
 
     public static final int TICKS_PER_SECOND = 20;
 
@@ -74,9 +75,9 @@ public class GameClient {
         Random random = new Random(System.currentTimeMillis());
 
         this.camera = new PlayerCamera(new Vector(0, 0), PlayerCamera.scale(CAMERA_WIDTH_PIXELS, DEFAULT_SCALE), PlayerCamera.scale(CAMERA_HEIGHT_PIXELS, DEFAULT_SCALE), DEFAULT_SCALE);
-        this.world = new ClientWorld("World");
+        this.world = new ClientWorld("World", this);
 
-        player = new ClientPlayer(world, connection);
+        player = new ClientPlayer(world, UUID.randomUUID(), connection);
 
         connection.sendPacket(new PacketInPlayerInfo(player.getId(), "Test Name"));
         Packet packet = connection.nextPacket();
@@ -86,12 +87,9 @@ public class GameClient {
         player.setPositionInternal(posVel.position);
         player.setVelocityInternal(posVel.velocity);
 
-        //Create chunks
-        Random rand = new Random(System.currentTimeMillis());
-
         //Create player
-        world.getChunkAt((int) Math.floor(player.getPosition().getX()) >> 4, (int) Math.floor(player.getPosition().getY()) >> 4)
-                .addEntity(player);
+        //world.getChunkAt((int) Math.floor(player.getPosition().getX()) >> 4, (int) Math.floor(player.getPosition().getY()) >> 4)
+        //        .addEntity(player);
 
         frame = new JFrame("Game") {
             public void paint(Graphics g) {
@@ -354,7 +352,7 @@ public class GameClient {
 
         //Send packets
         PacketProviderPlayer packetProviderPlayer = new PacketProviderPlayer();
-        List<Packet> packets = packetProviderPlayer.getPacketsSelf(player, player.getDataWatcher());
+        List<Packet> packets = packetProviderPlayer.getPackets(player, player.getDataWatcher()).self;
         packets.forEach((p) -> player.getConnection().sendPacket(p));
 
         //Receive packets

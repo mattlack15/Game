@@ -51,6 +51,13 @@ public abstract class GameEntity {
         this.setVelocityInternal(new Vector(0, 0));
     }
 
+    public GameEntity(GameWorld world, UUID id) {
+        this.id = id;
+        this.world = world;
+        this.setPositionInternal(new Vector(0, 0));
+        this.setVelocityInternal(new Vector(0, 0));
+    }
+
     public synchronized void tick1(double multiplier) {
         if (!this.velocity.isZero()) {
             this.setPosition(position.add(this.velocity.multiply(multiplier)));
@@ -81,7 +88,7 @@ public abstract class GameEntity {
 
     public synchronized void setVelocityInternal(Vector velocity) {
         this.velocity = velocity;
-        this.dataWatcher.setState(W_VELOCITY, velocity, false);
+        this.dataWatcher.setState(W_VELOCITY, velocity, 0);
     }
 
     public synchronized void setVelocity(Vector velocity) {
@@ -90,31 +97,31 @@ public abstract class GameEntity {
     }
 
     public synchronized void setPositionInternal(Vector position) {
-        setPosition(position, false);
+        setPosition(position, 0);
     }
 
     public synchronized void setPosition(Vector position) {
-        setPosition(position, true);
+        setPosition(position, 1);
     }
 
 
-    public synchronized void setPosition(Vector position, boolean makeDirty) {
+    public synchronized void setPosition(Vector position, int weakDirt) {
         if (getPosition() != null && getPosition().equals(position))
             return;
 
         world.entityUpdatePosition(this, getPosition(), position);
 
-        if (makeDirty) {
-            dataWatcher.set(W_POSITION, position);
-        } else {
-            dataWatcher.setState(W_POSITION, position, false);
-        }
+        dataWatcher.set(W_POSITION, position, weakDirt);
 
         this.position = position;
     }
 
     public synchronized BlockVector getChunkLocation() {
         return new BlockVector((int) getPosition().getX() >> 4, (int) getPosition().getY() >> 4);
+    }
+
+    public synchronized Chunk getChunk() {
+        return world.getLoadedChunkAt(getChunkLocation().getX(), getChunkLocation().getY());
     }
 
     public synchronized void remove() {

@@ -12,7 +12,7 @@ public class DataWatcher {
     private static class DataWatcherEntry<T> {
         T obj = null;
         boolean meta = true;
-        boolean dirty = false;
+        int dirt = 0;
     }
 
     private static Map<Object, AtomicInteger> idCounters = new ConcurrentHashMap<>();
@@ -33,6 +33,15 @@ public class DataWatcher {
     private ReadWriteLock lock = new ReentrantReadWriteLock();
 
     public <T> void set(DataWatcherObject object, T value) {
+        set(object, value, 1);
+    }
+
+
+        /**
+         * Set the value of a data object and if the object's dirt value is lower than the supplied dirt,
+         * then the dirt value is updated to the supplied dirt.
+         */
+    public <T> void set(DataWatcherObject object, T value, int weakDirt) {
         lock.writeLock().lock();
         try {
             int id = object.id;
@@ -41,7 +50,7 @@ public class DataWatcher {
             DataWatcherEntry entry = entryMap.get(id);
             if(!Objects.equals(entry.obj, value)) {
                 entry.obj = value;
-                entry.dirty = true;
+                entry.dirt = Math.max(entry.dirt, weakDirt);
             }
             entry.meta = object.isMeta;
         } finally {
@@ -49,7 +58,7 @@ public class DataWatcher {
         }
     }
 
-    public <T> void setState(DataWatcherObject object, T value, boolean dirty) {
+    public <T> void setState(DataWatcherObject object, T value, int dirt) {
         lock.writeLock().lock();
         try {
             int id = object.id;
@@ -58,7 +67,7 @@ public class DataWatcher {
             DataWatcherEntry entry = entryMap.get(id);
             if(!Objects.equals(entry.obj, value)) {
                 entry.obj = value;
-                entry.dirty = dirty;
+                entry.dirt = dirt;
             }
             entry.meta = object.isMeta;
         } finally {
@@ -81,29 +90,29 @@ public class DataWatcher {
         }
     }
 
-    public boolean isDirty(DataWatcherObject object) {
+    public boolean isDirty(DataWatcherObject object, int requiredDirt) {
         lock.readLock().lock();
         try {
             int id = object.id;
             if(!entryMap.containsKey(id)) {
                 return false;
             }
-            return entryMap.get(id).dirty;
+            return entryMap.get(id).dirt >= requiredDirt;
         } finally {
             lock.readLock().unlock();
         }
     }
 
-    public boolean setDirty(DataWatcherObject object, boolean dirty) {
+    public int setDirt(DataWatcherObject object, int dirt) {
         lock.writeLock().lock();
         try {
             int id = object.id;
             if(!entryMap.containsKey(id)) {
-                return false;
+                return 0;
             }
-            boolean wasDirty = entryMap.get(id).dirty;
-            entryMap.get(id).dirty = dirty;
-            return wasDirty;
+            int prevDirt = entryMap.get(id).dirt;
+            entryMap.get(id).dirt = dirt;
+            return prevDirt;
         } finally {
             lock.writeLock().unlock();
         }
@@ -113,7 +122,7 @@ public class DataWatcher {
         lock.readLock().lock();
         try {
             for (Map.Entry<Integer, DataWatcherEntry<?>> entry : this.entryMap.entrySet()) {
-                if(entry.getValue().meta && entry.getValue().dirty) {
+                if(entry.getValue().meta && entry.getValue().dirt > 0) {
                     return true;
                 }
             }
@@ -128,7 +137,9 @@ public class DataWatcher {
         try {
             serializer.writeInt(this.entryMap.size());
             this.entryMap.forEach((id, data) -> {
-                if(data.meta) {
+                if(data.meta && data.dirt > 0) {
+                    if(markNonDirty)
+                        data.dirt = 0;
                     serializer.writeInt(id);
                     serializer.writeObject(data);
                 }

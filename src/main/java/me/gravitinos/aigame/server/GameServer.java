@@ -6,11 +6,13 @@ import me.gravitinos.aigame.common.connection.Packet;
 import me.gravitinos.aigame.common.connection.PlayerConnection;
 import me.gravitinos.aigame.common.connection.SecuredTCPConnection;
 import me.gravitinos.aigame.common.connection.SecuredTCPServer;
+import me.gravitinos.aigame.common.datawatcher.PacketPackage;
 import me.gravitinos.aigame.common.entity.EntityPlayer;
 import me.gravitinos.aigame.common.map.GameWorld;
 import me.gravitinos.aigame.common.packet.PacketInPlayerInfo;
 import me.gravitinos.aigame.common.packet.PacketInPlayerMove;
 import me.gravitinos.aigame.common.packet.PacketOutEntityPositionVelocity;
+import me.gravitinos.aigame.common.packet.PacketOutSpawnPlayer;
 import me.gravitinos.aigame.server.packet.handler.PacketHandlerPlayerMove;
 import me.gravitinos.aigame.server.packet.handler.PacketHandlerServer;
 import me.gravitinos.aigame.server.packet.provider.PacketProviderServerPlayer;
@@ -69,7 +71,20 @@ public class GameServer extends SecuredTCPServer {
         }
     }
 
+    private int tickCounter = 0;
+    private long lastTickRecord = System.currentTimeMillis();
+    private int tps = 0;
+
     public void tick() {
+
+        tickCounter++;
+
+        if(System.currentTimeMillis() - lastTickRecord >= 1000) {
+            lastTickRecord = System.currentTimeMillis();
+            tps = tickCounter;
+            tickCounter = 0;
+            System.out.println("TPS: " + tps);
+        }
 
         //Tick entities
         this.world.getEntities().forEach(((e) -> {
@@ -105,10 +120,15 @@ public class GameServer extends SecuredTCPServer {
 
     private void sendPackets() {
         for (EntityPlayer player : world.getPlayers()) {
-            List<Packet> packets = new PacketProviderServerPlayer().getPacketsSelf((ServerPlayer) player, player.getDataWatcher());
-            for (Packet packet : packets) {
-                System.out.println("Sending packet " + packet.getClass().getName());
+            PacketPackage packets = new PacketProviderServerPlayer().getPackets((ServerPlayer) player, player.getDataWatcher());
+            for (Packet packet : packets.self) {
                 player.getConnection().sendPacket(packet);
+            }
+            for (Packet packet : packets.other) {
+                for (EntityPlayer worldPlayer : world.getPlayers()) {
+                    if (!worldPlayer.getId().equals(player.getId()))
+                        worldPlayer.getConnection().sendPacket(packet);
+                }
             }
         }
     }
@@ -121,9 +141,9 @@ public class GameServer extends SecuredTCPServer {
             String name = info.name;
             PlayerConnection playerConnection = new PlayerConnection(connection);
             ServerPlayer player = new ServerPlayer(world, id, name, playerConnection);
-            this.world.playerJoinWorld(player);
             playerConnection.sendPacket(new PacketOutEntityPositionVelocity(id, player.getPosition(), player.getVelocity()));
-            System.out.println(name + " joined the server.");
+            this.world.playerJoinWorld(player);
+
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -139,6 +159,10 @@ public class GameServer extends SecuredTCPServer {
         }, "Server Thread").start();
 
         Thread.sleep(10);
+        new Thread(GameClient::new).start();
+
+        Thread.sleep(3000);
+        System.out.println("Next player joining...");
         new GameClient();
     }
 }

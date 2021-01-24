@@ -13,6 +13,10 @@ public class PacketHandlerPlayerPositionVelocity implements PacketHandlerClient 
         PacketOutEntityPositionVelocity packet = (PacketOutEntityPositionVelocity) pack;
         UUID id = packet.entityId;
         GameEntity entity = client.player.getId().equals(id) ? client.player : client.world.getEntity(id);
+        if(entity == null) {
+            System.out.println("Could not find entity " + id.toString().substring(0, 3) + " from " + client.player.getId().toString().substring(0, 3));
+            return;
+        }
         entity.setPositionInternal(packet.position);
         //entity.setVelocityInternal(packet.velocity);
     }

@@ -1,9 +1,6 @@
 package me.gravitinos.aigame.common.connection;
 
-import me.gravitinos.aigame.common.packet.PacketInPlayerInfo;
-import me.gravitinos.aigame.common.packet.PacketInPlayerMove;
-import me.gravitinos.aigame.common.packet.PacketOutEntityPositionVelocity;
-import me.gravitinos.aigame.common.packet.PacketOutMapChunk;
+import me.gravitinos.aigame.common.packet.*;
 import net.ultragrav.serializer.GravSerializer;
 
 import java.lang.reflect.InvocationTargetException;
@@ -23,6 +20,7 @@ public abstract class Packet {
 
         registerPacket(PacketOutMapChunk.class);
         registerPacket(PacketOutEntityPositionVelocity.class);
+        registerPacket(PacketOutSpawnPlayer.class);
     }
 
     static void registerPacket(Class<? extends Packet> packetClass) {

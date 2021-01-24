@@ -2,8 +2,8 @@ package me.gravitinos.aigame.client.player;
 
 import me.gravitinos.aigame.common.connection.Packet;
 import me.gravitinos.aigame.common.datawatcher.DataWatcher;
+import me.gravitinos.aigame.common.datawatcher.PacketPackage;
 import me.gravitinos.aigame.common.datawatcher.PacketProvider;
-import me.gravitinos.aigame.common.entity.EntityPlayer;
 import me.gravitinos.aigame.common.entity.GameEntity;
 import me.gravitinos.aigame.common.packet.PacketInPlayerMove;
 import me.gravitinos.aigame.common.util.Vector;
@@ -13,10 +13,10 @@ import java.util.List;
 
 public class PacketProviderPlayer extends PacketProvider<ClientPlayer> {
     @Override
-    public List<Packet> getPacketsSelf(ClientPlayer player, DataWatcher dataWatcher) {
-        List<Packet> packets = new ArrayList<>();
+    public PacketPackage getPackets(ClientPlayer player, DataWatcher dataWatcher) {
+        PacketPackage packets = new PacketPackage();
 
-        if(dataWatcher.setDirty(GameEntity.W_POSITION, false)) {
+        if(dataWatcher.setDirt(GameEntity.W_POSITION, 0) > 0) {
             Vector position = dataWatcher.get(GameEntity.W_POSITION);
             Vector previous = dataWatcher.get(GameEntity.W_LAST_POSITION);
             dataWatcher.set(GameEntity.W_LAST_POSITION, position);
@@ -24,7 +24,7 @@ public class PacketProviderPlayer extends PacketProvider<ClientPlayer> {
                 previous = new Vector(0, 0);
             }
             Vector dPos = position.subtract(previous);
-            packets.add(new PacketInPlayerMove(dPos));
+            packets.self.add(new PacketInPlayerMove(dPos));
         }
 
         return packets;

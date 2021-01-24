@@ -2,10 +2,10 @@ package me.gravitinos.aigame.server.packet.provider;
 
 import me.gravitinos.aigame.common.connection.Packet;
 import me.gravitinos.aigame.common.datawatcher.DataWatcher;
+import me.gravitinos.aigame.common.datawatcher.PacketPackage;
 import me.gravitinos.aigame.common.datawatcher.PacketProvider;
 import me.gravitinos.aigame.common.entity.GameEntity;
 import me.gravitinos.aigame.common.map.Chunk;
-import me.gravitinos.aigame.common.packet.PacketInPlayerMove;
 import me.gravitinos.aigame.common.packet.PacketOutEntityPositionVelocity;
 import me.gravitinos.aigame.common.packet.PacketOutMapChunk;
 import me.gravitinos.aigame.common.util.Vector;
@@ -16,25 +16,24 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class PacketProviderServerPlayer extends PacketProvider<ServerPlayer> {
-
     @Override
-    public List<Packet> getPacketsOther(ServerPlayer obj, DataWatcher dataWatcher) {
+    public PacketPackage getPackets(ServerPlayer player, DataWatcher dataWatcher) {
+        PacketPackage packets = new PacketPackage();
 
-    }
-
-    @Override
-    public List<Packet> getPacketsSelf(ServerPlayer player, DataWatcher dataWatcher) {
-        List<Packet> packets = new ArrayList<>();
-
-        boolean pos = dataWatcher.setDirty(GameEntity.W_POSITION, false);
-        boolean vel = dataWatcher.setDirty(GameEntity.W_VELOCITY, false);
-        if(pos || vel) {
+        int pos = dataWatcher.setDirt(GameEntity.W_POSITION, 0);
+        int vel = dataWatcher.setDirt(GameEntity.W_VELOCITY, 0);
+        if(pos > 0 || vel > 0) {
             Vector position = dataWatcher.get(GameEntity.W_POSITION);
             Vector velocity = dataWatcher.get(GameEntity.W_VELOCITY);
-            packets.add(new PacketOutEntityPositionVelocity(player.getId(), position, velocity));
+
+            Packet packet = new PacketOutEntityPositionVelocity(player.getId(), position, velocity);
+            packets.other.add(packet);
+            if(pos > 1 || vel > 1) { //Dirt level is above 1, meaning it is required to send to the player as well
+                packets.self.add(packet);
+            }
         }
 
-        if(pos) {
+        if(pos > 0) {
 
             //Check chunks
             PlayerChunkMap chunkMap = player.getChunkMap();
@@ -49,7 +48,7 @@ public class PacketProviderServerPlayer extends PacketProvider<ServerPlayer> {
                     if(!chunkMap.isLoaded(x, y)) {
                         Chunk chunk = player.getWorld().getChunkAt(x, y);
                         if(chunk != null) {
-                            packets.add(new PacketOutMapChunk(chunk));
+                            packets.self.add(new PacketOutMapChunk(chunk));
                             chunkMap.setLoaded(x, y);
                         }
                     }

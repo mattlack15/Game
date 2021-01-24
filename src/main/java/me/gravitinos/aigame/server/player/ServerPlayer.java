@@ -19,8 +19,8 @@ public class ServerPlayer extends EntityPlayer {
     private PlayerChunkMap chunkMap = new PlayerChunkMap();
 
     public ServerPlayer(GameWorld world, UUID id, String name,  PlayerConnection connection) {
-        super(world, connection);
-        this.setId(id);
+        super(world, id, connection);
+        this.setName(name);
     }
 
     @Override

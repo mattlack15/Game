@@ -1,7 +1,10 @@
 package me.gravitinos.aigame.server.packet.handler;
 
+import me.gravitinos.aigame.common.blocks.GameBlock;
 import me.gravitinos.aigame.common.connection.Packet;
+import me.gravitinos.aigame.common.map.Chunk;
 import me.gravitinos.aigame.common.packet.PacketInPlayerMove;
+import me.gravitinos.aigame.common.packet.PacketOutMapChunk;
 import me.gravitinos.aigame.common.util.Vector;
 import me.gravitinos.aigame.server.GameServer;
 import me.gravitinos.aigame.server.player.ServerPlayer;
@@ -12,6 +15,11 @@ public class PacketHandlerPlayerMove implements PacketHandlerServer {
         PacketInPlayerMove move = (PacketInPlayerMove) packet;
         Vector movement = move.movement;
         Vector pos = player.getPosition().add(movement);
-        player.setPosition(pos);
+        player.setPosition(pos, 1);
+
+        player.getWorld().setBlockAt(player.getPosition().getX(), player.getPosition().getY(), GameBlock.getBlock(1));
+        Chunk chunk = player.getChunk();
+        PacketOutMapChunk packetOutMapChunk = new PacketOutMapChunk(chunk);
+        player.getWorld().getPlayers().forEach(p -> p.getConnection().sendPacket(packetOutMapChunk));
     }
 }

@@ -3,6 +3,7 @@ package me.gravitinos.aigame.client;
 import me.gravitinos.aigame.client.packet.PacketHandlerClient;
 import me.gravitinos.aigame.client.packet.PacketHandlerMapChunk;
 import me.gravitinos.aigame.client.packet.PacketHandlerPlayerPositionVelocity;
+import me.gravitinos.aigame.client.packet.PacketHandlerSpawnPlayer;
 import me.gravitinos.aigame.client.render.block.BlockRender;
 import me.gravitinos.aigame.client.render.block.BlockRenderAir;
 import me.gravitinos.aigame.client.render.block.BlockRendererWall;
@@ -14,6 +15,7 @@ import me.gravitinos.aigame.common.entity.EntityFire;
 import me.gravitinos.aigame.common.entity.EntityPlayer;
 import me.gravitinos.aigame.common.packet.PacketOutMapChunk;
 import me.gravitinos.aigame.common.packet.PacketOutEntityPositionVelocity;
+import me.gravitinos.aigame.common.packet.PacketOutSpawnPlayer;
 
 public class ClientRegistryInitializer {
     public static void init() {
@@ -29,5 +31,6 @@ public class ClientRegistryInitializer {
         //Packet Handlers
         PacketHandlerClient.REGISTRY.put(PacketOutMapChunk.class, new PacketHandlerMapChunk());
         PacketHandlerClient.REGISTRY.put(PacketOutEntityPositionVelocity.class, new PacketHandlerPlayerPositionVelocity());
+        PacketHandlerClient.REGISTRY.put(PacketOutSpawnPlayer.class, new PacketHandlerSpawnPlayer());
     }
 }

@@ -1,11 +1,14 @@
 package me.gravitinos.aigame.common.entity;
 
 import lombok.Getter;
+import lombok.Setter;
 import me.gravitinos.aigame.common.connection.PlayerConnection;
 import me.gravitinos.aigame.common.datawatcher.DataWatcher;
 import me.gravitinos.aigame.common.datawatcher.DataWatcherObject;
 import me.gravitinos.aigame.common.map.GameWorld;
 import me.gravitinos.aigame.common.inventory.Inventory;
+
+import java.util.UUID;
 
 public abstract class EntityPlayer extends GameEntity {
 
@@ -17,8 +20,12 @@ public abstract class EntityPlayer extends GameEntity {
     @Getter
     private double size = 1D;
 
-    public EntityPlayer(GameWorld world, PlayerConnection connection) {
-        super(world);
+    @Getter
+    @Setter
+    private String name = "";
+
+    public EntityPlayer(GameWorld world, UUID id, PlayerConnection connection) {
+        super(world, id);
         this.setFrictionFactor(0D);
         this.connection = connection;
     }
