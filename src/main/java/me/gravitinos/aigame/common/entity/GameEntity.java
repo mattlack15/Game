@@ -13,11 +13,15 @@ import me.gravitinos.aigame.common.util.AxisAlignedBoundingBox;
 import me.gravitinos.aigame.common.util.BlockVector;
 import me.gravitinos.aigame.common.util.Vector;
 
+import java.util.HashMap;
+import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 
 public abstract class GameEntity {
 
@@ -44,6 +48,18 @@ public abstract class GameEntity {
     @Getter
     @Setter
     private UUID id = UUID.randomUUID();
+
+    //Registry
+    private static Map<String, Class<? extends GameEntity>> REGISTRY = new ConcurrentHashMap<>();
+
+    public static void registerEntity(String name, Class<? extends GameEntity> clazz) {
+        REGISTRY.put(name, clazz);
+    }
+
+    public static Class<? extends GameEntity> byName(String name) {
+        return REGISTRY.get(name);
+    }
+    //
 
     public GameEntity(GameWorld world) {
         this.world = world;

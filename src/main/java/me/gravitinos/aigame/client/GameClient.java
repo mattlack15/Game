@@ -6,6 +6,7 @@ import me.gravitinos.aigame.client.player.ClientPlayer;
 import me.gravitinos.aigame.client.player.PacketProviderPlayer;
 import me.gravitinos.aigame.client.render.block.BlockRender;
 import me.gravitinos.aigame.client.render.entity.EntityRender;
+import me.gravitinos.aigame.common.util.SharedPalette;
 import me.gravitinos.aigame.client.world.ClientWorld;
 import me.gravitinos.aigame.common.RegistryInitializer;
 import me.gravitinos.aigame.common.blocks.GameBlock;
@@ -28,10 +29,8 @@ import java.io.IOException;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.security.spec.InvalidKeySpecException;
-import java.util.ArrayList;
+import java.util.*;
 import java.util.List;
-import java.util.Random;
-import java.util.UUID;
 
 public class GameClient {
 
@@ -57,6 +56,8 @@ public class GameClient {
     public ClientWorld world;
     public PlayerCamera camera;
     public ClientPlayer player;
+    public SharedPalette<GameBlock> blockPalette = new SharedPalette<>();
+    public SharedPalette<String> entityPalette = new SharedPalette<>();
 
     public void init() {
 
@@ -77,6 +78,11 @@ public class GameClient {
 
         this.camera = new PlayerCamera(new Vector(0, 0), PlayerCamera.scale(CAMERA_WIDTH_PIXELS, DEFAULT_SCALE), PlayerCamera.scale(CAMERA_HEIGHT_PIXELS, DEFAULT_SCALE), DEFAULT_SCALE);
         this.world = new ClientWorld("World", this);
+
+        //Default palette
+        Map<Integer, GameBlock> palette = new HashMap<>();
+        GameBlock.getBlocks().forEach((b) -> palette.put(GameBlock.getId(b), b));
+        blockPalette.setPalette(palette);
 
         player = new ClientPlayer(world, UUID.randomUUID(), connection);
 
@@ -222,12 +228,11 @@ public class GameClient {
             lastLoop = System.currentTimeMillis();
 
             long ms = System.currentTimeMillis();
-            long sinceLast = System.currentTimeMillis() - lastTick;
             if (ms - lastTick >= nextTickWait) {
                 tick();
                 tpsCounter++;
 
-                nextTickWait = (1000 / TICKS_PER_SECOND) - ((ms - lastTick) - nextTickWait);
+                nextTickWait = (1000 / TICKS_PER_SECOND) - (Math.min((System.currentTimeMillis() - lastTick), 500) - nextTickWait);
                 lastTick = System.currentTimeMillis();
             }
 
@@ -267,8 +272,8 @@ public class GameClient {
         double height = camera.scale(camera.getHeight());
 
         //For all blocks on the screen
-        double xMax = width + camera.getScale() * PlayerCamera.BASE_SCALE_MULTIPLIER;
-        double yMax = height + camera.getScale() * PlayerCamera.BASE_SCALE_MULTIPLIER;
+        double xMax = width + (camera.getScale() * PlayerCamera.BASE_SCALE_MULTIPLIER * 2);
+        double yMax = height + (camera.getScale() * PlayerCamera.BASE_SCALE_MULTIPLIER * 2);
         for (int x = 0; x <= xMax; x += camera.getScale() * PlayerCamera.BASE_SCALE_MULTIPLIER) {
             for (int y = 0; y <= yMax; y += camera.getScale() * PlayerCamera.BASE_SCALE_MULTIPLIER) {
 
@@ -384,7 +389,7 @@ public class GameClient {
         Random random = new Random(System.currentTimeMillis());
 
         synchronized (this) {
-            double speed = pressedKeys.contains(KeyEvent.VK_CONTROL) ? 0.6D * 0.66D : 0.28D * 0.66D;
+            double speed = pressedKeys.contains(KeyEvent.VK_CONTROL) ? 0.6D : 0.28D;
             speed *= multiplier;
             Vector posAdd = new Vector(0, 0);
             if (pressedKeys.contains(KeyEvent.VK_A)) {

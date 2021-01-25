@@ -16,6 +16,12 @@ public class PacketHandlerPlayerMove implements PacketHandlerServer {
         PacketInPlayerMove move = (PacketInPlayerMove) packet;
         Vector movement = move.movement;
         Vector pos = player.getPosition().add(movement);
+
+        boolean result = server.onMove(player, player.getPosition(), pos);
+
         player.setPosition(pos, 1);
+        if (!result) {
+            player.setPosition(pos.subtract(movement), 2);
+        }
     }
 }

@@ -7,10 +7,10 @@ public class GameBlockType {
 
     static {
         AIR = new BlockAir();
-        GameBlock.registerBlock(AIR);
+        GameBlock.registerBlock(AIR, "game.air");
 
         WALL = new BlockWall();
-        GameBlock.registerBlock(WALL);
+        GameBlock.registerBlock(WALL, "game.wall");
     }
 
     public static void init() {

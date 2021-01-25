@@ -12,6 +12,7 @@ import me.gravitinos.aigame.common.entity.EntityPlayer;
 import me.gravitinos.aigame.common.map.Chunk;
 import me.gravitinos.aigame.common.map.GameWorld;
 import me.gravitinos.aigame.common.packet.*;
+import me.gravitinos.aigame.common.util.SharedPalette;
 import me.gravitinos.aigame.common.util.Vector;
 import me.gravitinos.aigame.server.packet.handler.PacketHandlerChatMessage;
 import me.gravitinos.aigame.server.packet.handler.PacketHandlerPlayerMove;
@@ -28,6 +29,7 @@ import java.util.*;
 public class GameServer extends SecuredTCPServer {
 
     public GameWorld world;
+    public SharedPalette<String> entityPalette = new SharedPalette<>();
 
     public GameServer(int port) {
         super(port);
@@ -234,12 +236,17 @@ public class GameServer extends SecuredTCPServer {
             String name = info.name;
             PlayerConnection playerConnection = new PlayerConnection(connection);
             ServerPlayer player = new ServerPlayer(world, id, name, playerConnection);
+            player.setPosition(new Vector(2, 2));
             playerConnection.sendPacket(new PacketOutEntityPositionVelocity(id, player.getPosition(), player.getVelocity()));
             this.world.playerJoinWorld(player);
 
         } catch (Exception e) {
             e.printStackTrace();
         }
+    }
+
+    public boolean onMove(ServerPlayer player, Vector oldPos, Vector newPos) {
+        return newPos.getX() > -40 && newPos.getX() < 40 && newPos.getY() > -40 && newPos.getY() < 40;
     }
 
     public static void main(String[] args) throws InterruptedException {

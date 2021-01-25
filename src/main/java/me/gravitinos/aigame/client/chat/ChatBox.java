@@ -70,7 +70,11 @@ public class ChatBox {
             i -= 32;
         }
 
+        int a = 0;
         for(String s : lines) {
+
+            if(++a > 3 && !isTyping())
+                break;
 
             graphics.setColor(new Color(Color.DARK_GRAY.getRGB() & 0xFFFFFF | (0x88 << 24), true));
             graphics.fillRect(locX - 5, i - graphics.getFont().getSize(), WIDTH_PIXELS, graphics.getFont().getSize() + 4);
@@ -79,6 +83,7 @@ public class ChatBox {
 
             graphics.drawString(s, locX, i);
             i -= graphics.getFont().getSize() + 4;
+
         }
     }
 }
