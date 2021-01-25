@@ -10,26 +10,22 @@ import java.awt.*;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicBoolean;
 
-public class ChatBox implements Renderable {
+public class ChatBox {
 
     private static int WIDTH_PIXELS = 300;
     private static int LENGTH_PIXELS = 180;
     private static int LINE_HEIGHT = 30;
 
-    private int width;
-    private int height;
-
-    public ChatBox(int screenWidth, int screenHeight) {
-        this.width = screenWidth;
-        this.height = screenHeight;
-    }
 
     @Getter
     @Setter
     private volatile boolean typing = false;
 
     private StringBuilder currentLine = new StringBuilder();
+
+    public AtomicBoolean give = new AtomicBoolean();
 
     @Getter
     private List<String> lines = Collections.synchronizedList(new ArrayList<>());
@@ -54,8 +50,7 @@ public class ChatBox implements Renderable {
         lines.add(0, message);
     }
 
-    @Override
-    public void draw(Graphics graphics, PlayerCamera camera) {
+    public void draw(Graphics graphics, int width, int height) {
 
         int locX = width - WIDTH_PIXELS - 10;
 

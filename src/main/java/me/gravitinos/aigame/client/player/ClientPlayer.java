@@ -15,7 +15,7 @@ import java.util.UUID;
 public class ClientPlayer extends EntityPlayer {
 
     private Inventory inventory = new Inventory(5);
-    private ChatBox chatBox = new ChatBox(1000, 1000); //TODO fix
+    private ChatBox chatBox = new ChatBox();
 
     public ClientPlayer(GameWorld world, UUID id, PlayerConnection connection) {
         super(world, id, connection);

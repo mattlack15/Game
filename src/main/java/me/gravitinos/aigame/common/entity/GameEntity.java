@@ -30,8 +30,8 @@ public abstract class GameEntity {
     @Getter
     private DataWatcher dataWatcher = new DataWatcher();
 
-    @Getter
-    private AxisAlignedBoundingBox hitbox;
+    @Setter
+    private AxisAlignedBoundingBox hitbox = new AxisAlignedBoundingBox(0, 0);
     @Getter
     private Vector position = null;
     @Getter
@@ -58,9 +58,49 @@ public abstract class GameEntity {
         this.setVelocityInternal(new Vector(0, 0));
     }
 
+    private boolean checkCollision(Vector pos, double multiplier) {
+        int searchX = (int) Math.abs(this.velocity.getX() * multiplier) + 2;
+        int searchY = (int) Math.abs(this.velocity.getY() * multiplier) + 2;
+        AxisAlignedBoundingBox ourBb = new AxisAlignedBoundingBox(getHitbox().getSizeX(), getHitbox().getSizeY());
+        ourBb.updatePosition(pos);
+        for (int x = -searchX; x < searchX; x++) {
+            for (int y = -searchY; y < searchY; y++) {
+                BlockVector v = new BlockVector((int) pos.getX() + x, (int) (pos.getY() + y));
+                if(world.getBlockAt(v.getX(), v.getY()).isSolid()) {
+                    AxisAlignedBoundingBox bb = new AxisAlignedBoundingBox(1, 1);
+                    bb.updatePosition(new Vector(v.getX(), v.getY()));
+                    if(ourBb.intersects(bb)) {
+                        return true;
+                    }
+                }
+            }
+        }
+        return false;
+    }
+
     public synchronized void tick1(double multiplier) {
         if (!this.velocity.isZero()) {
-            this.setPosition(position.add(this.velocity.multiply(multiplier)));
+            Vector newPos = this.position.add(this.velocity.multiply(multiplier));
+
+            Vector testPos = new Vector(newPos.getX(), this.position.getY());
+
+            if(checkCollision(testPos, multiplier)) {
+                testPos = testPos.setX(this.position.getX());
+                setVelocityInternal(this.velocity.setX(0));
+            }
+
+            testPos = testPos.setY(newPos.getY());
+            if(checkCollision(testPos, multiplier)) {
+                testPos = testPos.setY(this.position.getY());
+                setVelocityInternal(this.velocity.setY(0));
+            }
+
+            if(this.velocity.isZero())
+                return;
+
+            //System.out.println("Setting position to " + testPos);
+
+            this.setPosition(testPos);
         }
     }
 
@@ -86,6 +126,11 @@ public abstract class GameEntity {
         this.dataWatcher.set(W_FRICTION_FACTOR, frictionFactor);
     }
 
+    public synchronized AxisAlignedBoundingBox getHitbox() {
+        this.hitbox.updatePosition(this.position);
+        return this.hitbox;
+    }
+
     public synchronized void setVelocityInternal(Vector velocity) {
         this.velocity = velocity;
         this.dataWatcher.setState(W_VELOCITY, velocity, 0);
@@ -98,10 +143,11 @@ public abstract class GameEntity {
 
     public synchronized void setPositionInternal(Vector position) {
         setPosition(position, 0);
+        getDataWatcher().set(W_LAST_POSITION, position, 0);
     }
 
     public synchronized void setPosition(Vector position) {
-        setPosition(position, 1);
+        setPosition(position, 2);
     }
 
 

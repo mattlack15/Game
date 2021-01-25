@@ -15,6 +15,9 @@ public abstract class Packet {
     private static AtomicInteger idCounter = new AtomicInteger();
 
     static {
+
+        registerPacket(PacketInOutChatMessage.class);
+
         registerPacket(PacketInPlayerInfo.class);
         registerPacket(PacketInPlayerMove.class);
 

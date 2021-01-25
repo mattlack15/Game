@@ -7,6 +7,7 @@ import me.gravitinos.aigame.common.datawatcher.DataWatcher;
 import me.gravitinos.aigame.common.datawatcher.DataWatcherObject;
 import me.gravitinos.aigame.common.map.GameWorld;
 import me.gravitinos.aigame.common.inventory.Inventory;
+import me.gravitinos.aigame.common.util.AxisAlignedBoundingBox;
 
 import java.util.UUID;
 
@@ -29,12 +30,14 @@ public abstract class EntityPlayer extends GameEntity {
         this.setFrictionFactor(0.45D);
         this.setFrictionFactor(0.45D);
         this.setFrictionFactor(0.45D);
+        this.setHitbox(new AxisAlignedBoundingBox(size, size));
         this.connection = connection;
     }
 
     public void setSize(double size) {
         this.size = size;
         this.getDataWatcher().set(W_SIZE, size);
+        this.setHitbox(new AxisAlignedBoundingBox(size, size));
     }
 
     public abstract Inventory getInventory();

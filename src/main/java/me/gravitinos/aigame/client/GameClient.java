@@ -14,6 +14,7 @@ import me.gravitinos.aigame.common.connection.PlayerConnection;
 import me.gravitinos.aigame.common.connection.SecuredTCPClient;
 import me.gravitinos.aigame.common.entity.*;
 import me.gravitinos.aigame.common.item.ItemStack;
+import me.gravitinos.aigame.common.packet.PacketInOutChatMessage;
 import me.gravitinos.aigame.common.packet.PacketInPlayerInfo;
 import me.gravitinos.aigame.common.packet.PacketOutEntityPositionVelocity;
 import me.gravitinos.aigame.common.util.Vector;
@@ -39,7 +40,7 @@ public class GameClient {
     @Getter
     private JFrame frame;
 
-    public static final int TICKS_PER_SECOND = 20;
+    public static final int TICKS_PER_SECOND = 30;
 
     public static final int CAMERA_WIDTH_PIXELS = 850;
     public static final int CAMERA_HEIGHT_PIXELS = 750;
@@ -79,9 +80,9 @@ public class GameClient {
 
         player = new ClientPlayer(world, UUID.randomUUID(), connection);
 
-        connection.sendPacket(new PacketInPlayerInfo(player.getId(), "Test Name"));
+        connection.sendPacket(new PacketInPlayerInfo(player.getId(), player.getId().toString().substring(0, 3)));
         Packet packet = connection.nextPacket();
-        if(!(packet instanceof PacketOutEntityPositionVelocity))
+        if (!(packet instanceof PacketOutEntityPositionVelocity))
             return;
         PacketOutEntityPositionVelocity posVel = (PacketOutEntityPositionVelocity) packet;
         player.setPositionInternal(posVel.position);
@@ -108,7 +109,7 @@ public class GameClient {
         frame.addKeyListener(new KeyListener() {
             @Override
             public void keyTyped(KeyEvent e) {
-                if (player.getChatBox().isTyping()) {
+                if (player.getChatBox().isTyping() && !player.getChatBox().give.compareAndSet(true, false)) {
                     if (e.getKeyChar() == KeyEvent.VK_BACK_SPACE) {
                         player.getChatBox().getCurrentBuilder().deleteCharAt(player.getChatBox().getCurrentBuilder().length() - 1);
                     } else {
@@ -123,11 +124,18 @@ public class GameClient {
                 synchronized (GameClient.this) {
                     if (pressedKeys.contains(e.getKeyCode()))
                         return;
-                    pressedKeys.add(e.getKeyCode());
+                    if (!player.getChatBox().isTyping())
+                        pressedKeys.add(e.getKeyCode());
                     if (e.getKeyCode() == KeyEvent.VK_T) {
-                        player.getChatBox().setTyping(true);
+                        if (!player.getChatBox().isTyping()) {
+                            player.getChatBox().give.set(true);
+                            player.getChatBox().setTyping(true);
+                            pressedKeys.clear();
+                        }
                     } else if (e.getKeyCode() == KeyEvent.VK_ENTER) {
-                        player.getChatBox().chat(player.getChatBox().getCurrentLine());
+                        String message = player.getChatBox().getCurrentLine();
+                        PacketInOutChatMessage chatMessage = new PacketInOutChatMessage(message);
+                        player.getConnection().sendPacket(chatMessage);
                         player.getChatBox().clearCurrentLine();
                         player.getChatBox().setTyping(false);
                     } else if (e.getKeyCode() == KeyEvent.VK_ESCAPE) {
@@ -183,7 +191,7 @@ public class GameClient {
             }
         });
 
-        player.setPosition(new Vector(4, 4));
+        player.setPosition(new Vector(0, 4));
     }
 
     @Getter
@@ -268,7 +276,7 @@ public class GameClient {
                 Vector pos = camera.fromScreenCoordinates(new Vector(x, y)).floor();
 
                 //Get block
-                if(world.getLoadedChunkAt((int) pos.getX() >> 4, (int) pos.getY() >> 4) == null)
+                if (world.getLoadedChunkAt((int) pos.getX() >> 4, (int) pos.getY() >> 4) == null)
                     continue;
 
                 GameBlock block = world.getBlockAt(pos);
@@ -293,10 +301,10 @@ public class GameClient {
             if (entity.getPosition().distanceSquared(camera.getPosition()) < num * num) {
                 //TODO
                 Class<?> clazz = entity.getClass();
-                if(entity instanceof ClientPlayer)
+                if (entity instanceof ClientPlayer)
                     clazz = clazz.getSuperclass();
                 EntityRender renderer = EntityRender.REGISTRY.get(clazz);
-                if(renderer == null) {
+                if (renderer == null) {
                     System.out.println("Could not render entity type: " + entity.getClass().getName());
                     continue;
                 }
@@ -339,7 +347,7 @@ public class GameClient {
         graphics.drawString("Scale: " + camera.getScale(), 10, 170);
         graphics.drawString("Speed: " + player.getVelocity().distance(new Vector(0, 0)) * 20D * 3600 / 1000D + " km/h", 10, 190);
 
-        player.getChatBox().draw(graphics, camera);
+        player.getChatBox().draw(graphics, frame.getWidth(), frame.getHeight());
 
         ms = System.currentTimeMillis() - ms;
 
@@ -357,13 +365,13 @@ public class GameClient {
 
         //Receive packets
         List<Packet> received = new ArrayList<>();
-        while(player.getConnection().hasNextPacket()) {
+        while (player.getConnection().hasNextPacket()) {
             received.add(player.getConnection().nextPacket());
         }
 
         for (Packet packet : received) {
             PacketHandlerClient handler = PacketHandlerClient.REGISTRY.get(packet.getClass());
-            if(handler == null) {
+            if (handler == null) {
                 System.out.println("Could not handle packet type: " + packet.getClass().getName());
                 continue;
             }
@@ -376,7 +384,7 @@ public class GameClient {
         Random random = new Random(System.currentTimeMillis());
 
         synchronized (this) {
-            double speed = pressedKeys.contains(KeyEvent.VK_CONTROL) ? 0.6D : 0.28D;
+            double speed = pressedKeys.contains(KeyEvent.VK_CONTROL) ? 0.6D * 0.66D : 0.28D * 0.66D;
             speed *= multiplier;
             Vector posAdd = new Vector(0, 0);
             if (pressedKeys.contains(KeyEvent.VK_A)) {
@@ -403,13 +411,13 @@ public class GameClient {
                 if (sprint)
                     amount += 12;
 
-                double spread = (sprint ? 0.9D : 0.6D);
+                double spread = (sprint ? 1.2D : 0.6D);
 
                 for (int i = 0; i < amount; i++) {
                     Vector pos1 = pos.add(random.nextDouble() * spread - (spread / 2), random.nextDouble() * spread - (spread / 2));
                     EntityFire fire = new EntityFire(world);
                     fire.setPosition(pos1);
-                    fire.setVelocity(player.getVelocity().add(dVel.multiply(-30D)));
+                    fire.setVelocity(player.getVelocity().add(dVel.multiply(-20D)));
                 }
             }
             if (pressedKeys.contains(KeyEvent.VK_N)) {

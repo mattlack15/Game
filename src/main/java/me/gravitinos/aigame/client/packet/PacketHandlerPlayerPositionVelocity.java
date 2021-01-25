@@ -18,6 +18,5 @@ public class PacketHandlerPlayerPositionVelocity implements PacketHandlerClient 
             return;
         }
         entity.setPositionInternal(packet.position);
-        //entity.setVelocityInternal(packet.velocity);
     }
 }
