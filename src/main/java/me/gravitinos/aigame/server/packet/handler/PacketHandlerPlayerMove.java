@@ -17,9 +17,5 @@ public class PacketHandlerPlayerMove implements PacketHandlerServer {
         Vector pos = player.getPosition().add(movement);
         player.setPosition(pos, 1);
 
-        player.getWorld().setBlockAt(player.getPosition().getX(), player.getPosition().getY(), GameBlock.getBlock(1));
-        Chunk chunk = player.getChunk();
-        PacketOutMapChunk packetOutMapChunk = new PacketOutMapChunk(chunk);
-        player.getWorld().getPlayers().forEach(p -> p.getConnection().sendPacket(packetOutMapChunk));
     }
 }

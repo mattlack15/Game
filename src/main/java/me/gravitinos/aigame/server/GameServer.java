@@ -86,6 +86,8 @@ public class GameServer extends SecuredTCPServer {
             System.out.println("TPS: " + tps);
         }
 
+        long tickTiming = System.currentTimeMillis();
+
         //Tick entities
         this.world.getEntities().forEach(((e) -> {
             if (!(e instanceof EntityPlayer))
@@ -101,6 +103,9 @@ public class GameServer extends SecuredTCPServer {
 
         //Receive packets
         receivePackets();
+
+        tickTiming = System.currentTimeMillis() - tickTiming;
+        System.out.println("Tick took: " + tickTiming);
 
     }
 

@@ -17,13 +17,20 @@ public class DataWatcher {
 
     private static Map<Object, AtomicInteger> idCounters = new ConcurrentHashMap<>();
 
-    public static <T> DataWatcherObject register(Object identifier) {
+    public static <T> DataWatcherObject register(Class<?> identifier) {
         return register(identifier, true);
     }
 
-    public static <T> DataWatcherObject register(Object identifier, boolean isMeta) {
+    public static <T> DataWatcherObject register(Class<?> identifier, boolean isMeta) {
         idCounters.putIfAbsent(identifier, new AtomicInteger());
         AtomicInteger counter = idCounters.get(identifier);
+        Class<?> identifier0 = identifier;
+        while(counter == null) {
+            identifier = identifier.getSuperclass();
+            counter = idCounters.get(identifier);
+        }
+        counter = new AtomicInteger(counter.get());
+        idCounters.put(identifier0, counter);
         DataWatcherObject object = new DataWatcherObject(counter.getAndIncrement());
         object.isMeta = isMeta;
         return object;
