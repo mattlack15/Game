@@ -111,9 +111,9 @@ public class GameClient {
             public void keyTyped(KeyEvent e) {
                 if (player.getChatBox().isTyping() && !player.getChatBox().give.compareAndSet(true, false)) {
                     if (e.getKeyChar() == KeyEvent.VK_BACK_SPACE) {
-                        player.getChatBox().getCurrentBuilder().deleteCharAt(player.getChatBox().getCurrentBuilder().length() - 1);
+                        if (player.getChatBox().getCurrentBuilder().length() > 0)
+                            player.getChatBox().getCurrentBuilder().deleteCharAt(player.getChatBox().getCurrentBuilder().length() - 1);
                     } else {
-                        System.out.println(Integer.toHexString(e.getKeyChar()));
                         player.getChatBox().addChar(e.getKeyChar());
                     }
                 }
@@ -404,14 +404,14 @@ public class GameClient {
                 player.setVelocity(player.getVelocity().add(dVel));
 
                 Vector pos = player.getPosition();
-                pos = pos.add(dVel.normalize().multiply(-0.8D));
+                pos = pos.add(dVel.normalize().multiply(-0.8D)).add(0.15, 0.15);
 
                 int amount = 8;
                 boolean sprint = pressedKeys.contains(KeyEvent.VK_CONTROL);
                 if (sprint)
                     amount += 12;
 
-                double spread = (sprint ? 1.2D : 0.6D);
+                double spread = (sprint ? 0.9D : 0.6D);
 
                 for (int i = 0; i < amount; i++) {
                     Vector pos1 = pos.add(random.nextDouble() * spread - (spread / 2), random.nextDouble() * spread - (spread / 2));

@@ -11,5 +11,9 @@ public class EntityRenderPlayer extends EntityRender<EntityPlayer> {
     public void draw(Graphics graphics, EntityPlayer entity, Vector position, double scaleFactor) {
         graphics.setColor(Color.RED);
         graphics.fillRect((int) position.getX(), (int) position.getY(), (int) (entity.getSize() * scaleFactor), (int) (entity.getSize() * scaleFactor));
+
+        graphics.setColor(Color.WHITE);
+        graphics.setFont(new Font("", Font.PLAIN | Font.BOLD, 16));
+        graphics.drawString(entity.getName(), (int) position.getX() - 5, (int) (position.getY() - 18));
     }
 }

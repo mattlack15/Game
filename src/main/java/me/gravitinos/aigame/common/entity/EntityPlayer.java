@@ -19,7 +19,7 @@ public abstract class EntityPlayer extends GameEntity {
     private PlayerConnection connection;
 
     @Getter
-    private double size = 1D;
+    private double size = 0.8D;
 
     @Getter
     @Setter
@@ -27,8 +27,6 @@ public abstract class EntityPlayer extends GameEntity {
 
     public EntityPlayer(GameWorld world, UUID id, PlayerConnection connection) {
         super(world, id);
-        this.setFrictionFactor(0.45D);
-        this.setFrictionFactor(0.45D);
         this.setFrictionFactor(0.45D);
         this.setHitbox(new AxisAlignedBoundingBox(size, size));
         this.connection = connection;

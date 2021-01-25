@@ -41,6 +41,10 @@ public abstract class Packet {
 
     public static <T extends Packet> T deserialize(GravSerializer serializer, int packetId) {
         Class<? extends Packet> c = idMap.get(packetId);
+        if(c == null) {
+            System.out.println("Could not deserialize packet with id: " + packetId);
+            return null;
+        }
         try {
             Object o = c.getConstructor(GravSerializer.class).newInstance(serializer);
             return (T) o;

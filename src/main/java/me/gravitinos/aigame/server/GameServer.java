@@ -113,6 +113,8 @@ public class GameServer extends SecuredTCPServer {
         for (EntityPlayer player : world.getPlayers()) {
             while (player.getConnection().hasNextPacket()) {
                 Packet packet = player.getConnection().nextPacket();
+                if(packet == null)
+                    continue;
                 PacketHandlerServer packetHandler = PacketHandlerServer.REGISTRY.get(packet.getClass());
                 if (packetHandler == null) {
                     System.out.println("Could not handle packet: " + packet.getClass());
@@ -200,8 +202,8 @@ public class GameServer extends SecuredTCPServer {
             pos2 = new Vector(Math.max(sPos1.getX(), pos2.getX()), Math.max(sPos1.getY(), pos2.getY()));
 
             Chunk lastChunk = null;
-            for (int x = (int) pos1.getX(); x < pos2.getX(); x++) {
-                for (int y = (int) pos1.getY(); y < pos2.getY(); y++) {
+            for (int x = (int) pos1.getX(); x <= (int) pos2.getX(); x++) {
+                for (int y = (int) pos1.getY(); y <= (int) pos2.getY(); y++) {
                     Chunk chunk = player.getWorld().getChunkAt(x >> 4, y >> 4);
                     if (chunk != lastChunk) {
                         if (!toUpdate.contains(chunk))
@@ -215,6 +217,12 @@ public class GameServer extends SecuredTCPServer {
                 PacketOutMapChunk packetOutMapChunk = new PacketOutMapChunk(c);
                 player.getWorld().getPlayers().forEach(p -> p.getConnection().sendPacket(packetOutMapChunk));
             });
+
+            if(pos2.distanceSquared(player.getPosition()) < pos1.distanceSquared(player.getPosition())) {
+                player.setPosition(pos2.add(1, 1));
+            } else {
+                player.setPosition(pos1.add(-1, -1));
+            }
         }
     }
 
