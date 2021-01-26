@@ -7,18 +7,18 @@ import java.util.UUID;
 
 public class PacketOutDestroyEntity extends Packet {
 
-    public UUID id;
+    public UUID entityUUID;
 
     public PacketOutDestroyEntity(UUID id) {
-        this.id = id;
+        this.entityUUID = id;
     }
 
     public PacketOutDestroyEntity(GravSerializer serializer) {
-        this.id = serializer.readUUID();
+        this.entityUUID = serializer.readUUID();
     }
 
     @Override
     public void serialize(GravSerializer serializer) {
-        serializer.writeUUID(id);
+        serializer.writeUUID(entityUUID);
     }
 }

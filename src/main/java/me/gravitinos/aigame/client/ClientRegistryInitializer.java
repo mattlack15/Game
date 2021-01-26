@@ -29,5 +29,7 @@ public class ClientRegistryInitializer {
         PacketHandlerClient.REGISTRY.put(PacketOutSpawnPlayer.class, new PacketHandlerSpawnPlayer());
         PacketHandlerClient.REGISTRY.put(PacketInOutChatMessage.class, new PacketHandlerIncChatMessage());
         PacketHandlerClient.REGISTRY.put(PacketOutSetPalette.class, new PacketHandlerSetPalette());
+        PacketHandlerClient.REGISTRY.put(PacketOutSpawnEntity.class, new PacketHandlerSpawnEntity());
+        PacketHandlerClient.REGISTRY.put(PacketOutDestroyEntity.class, new PacketHandlerDestroyEntity());
     }
 }

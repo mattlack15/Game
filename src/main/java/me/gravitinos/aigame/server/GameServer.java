@@ -9,7 +9,9 @@ import me.gravitinos.aigame.common.connection.PlayerConnection;
 import me.gravitinos.aigame.common.connection.SecuredTCPConnection;
 import me.gravitinos.aigame.common.connection.SecuredTCPServer;
 import me.gravitinos.aigame.common.datawatcher.PacketPackage;
+import me.gravitinos.aigame.common.entity.EntityFire;
 import me.gravitinos.aigame.common.entity.EntityPlayer;
+import me.gravitinos.aigame.common.entity.GameEntity;
 import me.gravitinos.aigame.common.map.Chunk;
 import me.gravitinos.aigame.common.map.GameWorld;
 import me.gravitinos.aigame.common.packet.*;
@@ -45,8 +47,16 @@ public class GameServer extends SecuredTCPServer {
 
         initRegistries();
 
+        //Create entity palette
+        Map<Integer, String> entityPaletteMap = new HashMap<>();
+        int id = 0;
+        for (String registeredEntity : GameEntity.getRegisteredEntities()) {
+            entityPaletteMap.put(id++, registeredEntity);
+        }
+        entityPalette.setPalette(entityPaletteMap);
+
         //Create world
-        world = new ServerWorld("The World");
+        world = new ServerWorld("The World", entityPalette);
 
         mainLoop();
     }
@@ -257,7 +267,15 @@ public class GameServer extends SecuredTCPServer {
     }
 
     public boolean onMove(ServerPlayer player, Vector oldPos, Vector newPos) {
-        return newPos.getX() > -40 && newPos.getX() < 40 && newPos.getY() > -40 && newPos.getY() < 40;
+        boolean result = newPos.getX() > -40 && newPos.getX() < 40 && newPos.getY() > -40 && newPos.getY() < 40;
+        if(!result) {
+            EntityFire fire = new EntityFire(world);
+            fire.setPositionInternal(oldPos);
+            fire.size = 50;
+            fire.getDataWatcher().set(EntityFire.W_SIZE, fire.size, 0);
+            fire.joinWorld();
+        }
+        return result;
     }
 
     public static void main(String[] args) throws InterruptedException {

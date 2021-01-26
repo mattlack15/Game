@@ -142,13 +142,19 @@ public class DataWatcher {
     public void serializeDirtyMeta(GravSerializer serializer, boolean markNonDirty) {
         lock.writeLock().lock();
         try {
-            serializer.writeInt(this.entryMap.size());
+            AtomicInteger am = new AtomicInteger();
+            this.entryMap.forEach((id, data) -> {
+                    if(data.meta && data.dirt > 0) {
+                        am.getAndIncrement();
+                    }
+            });
+            serializer.writeInt(am.get());
             this.entryMap.forEach((id, data) -> {
                 if(data.meta && data.dirt > 0) {
                     if(markNonDirty)
                         data.dirt = 0;
                     serializer.writeInt(id);
-                    serializer.writeObject(data);
+                    serializer.writeObject(data.obj);
                 }
             });
         } finally {
@@ -157,15 +163,57 @@ public class DataWatcher {
     }
 
     public void serializeMeta(GravSerializer serializer) {
-        lock.writeLock().lock();
+        lock.readLock().lock();
         try {
-            serializer.writeInt(this.entryMap.size());
+            AtomicInteger am = new AtomicInteger();
+            this.entryMap.forEach((id, data) -> {
+                if(data.meta) {
+                    am.getAndIncrement();
+                }
+            });
+            serializer.writeInt(am.get());
             this.entryMap.forEach((id, data) -> {
                 if(data.meta) {
                     serializer.writeInt(id);
-                    serializer.writeObject(data);
+                    serializer.writeObject(data.obj);
                 }
             });
+        } finally {
+            lock.readLock().unlock();
+        }
+    }
+
+    public void updateStrongDirt(GravSerializer serializer, int strongDirt) {
+        lock.writeLock().lock();
+        try {
+            int amount = serializer.readInt();
+            for (int i = 0; i < amount; i++) {
+                int id = serializer.readInt();
+                Object o = serializer.readObject();
+                DataWatcherEntry entry = entryMap.get(id);
+                if(entry != null) {
+                    entry.obj = o;
+                    entry.dirt = strongDirt;
+                }
+            }
+        } finally {
+            lock.writeLock().unlock();
+        }
+    }
+
+    public void updateWeakDirt(GravSerializer serializer, int weakDirt) {
+        lock.writeLock().lock();
+        try {
+            int amount = serializer.readInt();
+            for (int i = 0; i < amount; i++) {
+                int id = serializer.readInt();
+                Object o = serializer.readObject();
+                DataWatcherEntry entry = entryMap.get(id);
+                if(entry != null) {
+                    entry.obj = o;
+                    entry.dirt = Math.max(entry.dirt, weakDirt);
+                }
+            }
         } finally {
             lock.writeLock().unlock();
         }

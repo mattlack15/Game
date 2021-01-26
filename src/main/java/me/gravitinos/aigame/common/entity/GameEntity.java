@@ -13,6 +13,9 @@ import me.gravitinos.aigame.common.util.SharedPalette;
 import me.gravitinos.aigame.common.util.Vector;
 import net.ultragrav.serializer.GravSerializer;
 
+import java.lang.reflect.InvocationTargetException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
@@ -52,6 +55,10 @@ public abstract class GameEntity {
     public static void registerEntity(String name, Class<? extends GameEntity> clazz) {
         REGISTRY_NAME.put(name, clazz);
         REGISTRY_CLASS.put(clazz, name);
+    }
+
+    public static List<String> getRegisteredEntities() {
+        return new ArrayList<>(REGISTRY_NAME.keySet());
     }
 
     public static Class<? extends GameEntity> byName(String name) {
@@ -208,6 +215,28 @@ public abstract class GameEntity {
      * This is to be called when the data watcher's contents are changed so that this entity can update and internal variables with the new values
      */
     public void invalidateMeta() {
+    }
+
+    public static GameEntity deserialize(GravSerializer serializer, GameWorld world, SharedPalette<String> palette) throws NoSuchMethodException, IllegalAccessException, InvocationTargetException, InstantiationException {
+        int typeId = serializer.readInt();
+        String type = palette.byId(typeId);
+        Class<? extends GameEntity> clazz = REGISTRY_NAME.get(type);
+
+        //Create the entity
+        GameEntity entity = clazz.getConstructor(GameWorld.class).newInstance(world);
+
+        //Set entity data values
+        entity.setId(serializer.readUUID());
+        entity.setPositionInternal(new Vector(serializer.readDouble(), serializer.readDouble()));
+        entity.setVelocityInternal(new Vector(serializer.readDouble(), serializer.readDouble()));
+        entity.frictionFactor = serializer.readDouble();
+        entity.getDataWatcher().set(GameEntity.W_FRICTION_FACTOR, entity.frictionFactor, 0);
+
+        //Set meta
+        entity.getDataWatcher().updateStrongDirt(serializer, 0);
+        entity.invalidateMeta();
+
+        return entity;
     }
 
     public void serialize(GravSerializer serializer, SharedPalette<String> palette) {

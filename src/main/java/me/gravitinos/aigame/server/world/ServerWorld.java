@@ -3,18 +3,38 @@ package me.gravitinos.aigame.server.world;
 import me.gravitinos.aigame.common.blocks.GameBlock;
 import me.gravitinos.aigame.common.blocks.GameBlockType;
 import me.gravitinos.aigame.common.entity.EntityPlayer;
+import me.gravitinos.aigame.common.entity.GameEntity;
 import me.gravitinos.aigame.common.map.Chunk;
 import me.gravitinos.aigame.common.map.GameWorld;
+import me.gravitinos.aigame.common.packet.PacketOutDestroyEntity;
+import me.gravitinos.aigame.common.packet.PacketOutSpawnEntity;
 import me.gravitinos.aigame.common.packet.PacketOutSpawnPlayer;
+import me.gravitinos.aigame.common.util.SharedPalette;
 
 public class ServerWorld extends GameWorld {
-    public ServerWorld(String name) {
+    private SharedPalette<String> entityPalette;
+    public ServerWorld(String name, SharedPalette<String> entityPalette) {
         super(name);
+        this.entityPalette = entityPalette;
     }
 
     @Override
     protected void initChunk(Chunk chunk) {
-        chunk.setBlock(0, 0, GameBlock.getBlock(1));
+        chunk.setBlock(0, 0, GameBlockType.WALL);
+    }
+
+    @Override
+    public synchronized void entityJoinWorld(GameEntity entity) {
+        super.entityJoinWorld(entity);
+        PacketOutSpawnEntity packet = new PacketOutSpawnEntity(entity, entityPalette);
+        getPlayers().forEach(p -> p.getConnection().sendPacket(packet));
+    }
+
+    @Override
+    public synchronized void entityLeaveWorld(GameEntity entity) {
+        super.entityLeaveWorld(entity);
+        PacketOutDestroyEntity packet = new PacketOutDestroyEntity(entity.getId());
+        getPlayers().forEach(p -> p.getConnection().sendPacket(packet));
     }
 
     @Override
