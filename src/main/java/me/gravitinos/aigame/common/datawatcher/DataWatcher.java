@@ -155,4 +155,19 @@ public class DataWatcher {
             lock.writeLock().unlock();
         }
     }
+
+    public void serializeMeta(GravSerializer serializer) {
+        lock.writeLock().lock();
+        try {
+            serializer.writeInt(this.entryMap.size());
+            this.entryMap.forEach((id, data) -> {
+                if(data.meta) {
+                    serializer.writeInt(id);
+                    serializer.writeObject(data);
+                }
+            });
+        } finally {
+            lock.writeLock().unlock();
+        }
+    }
 }

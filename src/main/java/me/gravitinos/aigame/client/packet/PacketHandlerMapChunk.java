@@ -15,7 +15,7 @@ public class PacketHandlerMapChunk implements PacketHandlerClient {
         short[] data = packet.data;
         for (int i = 0, dataLength = data.length; i < dataLength; i++) {
             short datum = data[i];
-            chunk.setBlockIndex(i, GameBlock.getId(client.blockPalette.get(datum)));
+            chunk.setBlockIndex(i, GameBlock.getId(client.blockPalette.byId(datum)));
         }
     }
 }

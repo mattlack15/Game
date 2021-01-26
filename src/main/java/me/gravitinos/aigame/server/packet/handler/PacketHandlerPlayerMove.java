@@ -15,6 +15,10 @@ public class PacketHandlerPlayerMove implements PacketHandlerServer {
     public void handlePacket(ServerPlayer player, Packet packet, GameServer server) {
         PacketInPlayerMove move = (PacketInPlayerMove) packet;
         Vector movement = move.movement;
+
+        if(player.isAwaitingTpConfirmation())
+            return; //Ignore this packet
+
         Vector pos = player.getPosition().add(movement);
 
         boolean result = server.onMove(player, player.getPosition(), pos);

@@ -2,6 +2,7 @@ package me.gravitinos.aigame.server;
 
 import me.gravitinos.aigame.client.GameClient;
 import me.gravitinos.aigame.common.RegistryInitializer;
+import me.gravitinos.aigame.common.blocks.GameBlock;
 import me.gravitinos.aigame.common.blocks.GameBlockType;
 import me.gravitinos.aigame.common.connection.Packet;
 import me.gravitinos.aigame.common.connection.PlayerConnection;
@@ -16,6 +17,7 @@ import me.gravitinos.aigame.common.util.SharedPalette;
 import me.gravitinos.aigame.common.util.Vector;
 import me.gravitinos.aigame.server.packet.handler.PacketHandlerChatMessage;
 import me.gravitinos.aigame.server.packet.handler.PacketHandlerPlayerMove;
+import me.gravitinos.aigame.server.packet.handler.PacketHandlerPositionConfirmation;
 import me.gravitinos.aigame.server.packet.handler.PacketHandlerServer;
 import me.gravitinos.aigame.server.packet.provider.PacketProviderServerPlayer;
 import me.gravitinos.aigame.server.player.ServerPlayer;
@@ -53,6 +55,7 @@ public class GameServer extends SecuredTCPServer {
         RegistryInitializer.init();
         PacketHandlerServer.REGISTRY.put(PacketInPlayerMove.class, new PacketHandlerPlayerMove());
         PacketHandlerServer.REGISTRY.put(PacketInOutChatMessage.class, new PacketHandlerChatMessage());
+        PacketHandlerServer.REGISTRY.put(PacketInPositionConfirmation.class, new PacketHandlerPositionConfirmation());
     }
 
     private void mainLoop() {
@@ -237,8 +240,16 @@ public class GameServer extends SecuredTCPServer {
             PlayerConnection playerConnection = new PlayerConnection(connection);
             ServerPlayer player = new ServerPlayer(world, id, name, playerConnection);
             player.setPosition(new Vector(2, 2));
+
+            //Send position/velocity
             playerConnection.sendPacket(new PacketOutEntityPositionVelocity(id, player.getPosition(), player.getVelocity()));
-            this.world.playerJoinWorld(player);
+
+            //Send block/entity palettes
+            Map<Integer, String> blockPalette = new HashMap<>();
+            GameBlock.getBlockNameMap().forEach((blockName, block) -> blockPalette.put(GameBlock.getId(block), blockName));
+            playerConnection.sendPacket(new PacketOutSetPalette(blockPalette, entityPalette.getPalette()));
+
+            player.joinWorld();
 
         } catch (Exception e) {
             e.printStackTrace();

@@ -11,6 +11,7 @@ public class PacketOutEntityPositionVelocity extends Packet {
     public Vector position;
     public Vector velocity;
     public UUID entityId;
+    public UUID pId = UUID.randomUUID();
 
     public PacketOutEntityPositionVelocity(UUID entityId, Vector position, Vector velocity) {
         this.entityId = entityId;
@@ -20,6 +21,7 @@ public class PacketOutEntityPositionVelocity extends Packet {
 
     public PacketOutEntityPositionVelocity(GravSerializer serializer) {
         this.entityId = serializer.readUUID();
+        this.pId = serializer.readUUID();
         this.position = new Vector(serializer.readDouble(), serializer.readDouble());
         this.velocity = new Vector(serializer.readDouble(), serializer.readDouble());
     }
@@ -27,6 +29,7 @@ public class PacketOutEntityPositionVelocity extends Packet {
     @Override
     public void serialize(GravSerializer serializer) {
         serializer.writeUUID(entityId);
+        serializer.writeUUID(pId);
         serializer.writeDouble(position.getX());
         serializer.writeDouble(position.getY());
         serializer.writeDouble(velocity.getX());

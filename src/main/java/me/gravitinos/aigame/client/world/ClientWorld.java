@@ -48,23 +48,27 @@ public class ClientWorld extends GameWorld {
     }
 
     @Override
+    public synchronized void entityJoinWorld(GameEntity entity) {
+        this.entityList.put(entity.getId(), entity);
+    }
+
+    @Override
+    public synchronized void entityLeaveWorld(GameEntity entity) {
+        this.entityList.remove(entity.getId());
+    }
+
+    @Override
+    public synchronized void playerJoinWorld(EntityPlayer player) {
+        entityJoinWorld(player);
+    }
+
+    @Override
+    public synchronized void playerLeaveWorld(EntityPlayer player) {
+        entityLeaveWorld(player);
+    }
+
+    @Override
     public synchronized void entityUpdatePosition(GameEntity entity, Vector oldPos, Vector newPos) {
-        if (oldPos == null) {
-            //Just joining the world
-            //Add the entity to the world
-            this.entityList.put(entity.getId(), entity);
-            if (entity instanceof EntityPlayer) {
-                if (client.player == null) {
-                    System.out.println("Main player joined (" + entity.getId().toString().substring(0, 3) + ")");
-                } else {
-                    System.out.println("Player join world (" + entity.getId().toString().substring(0, 3) + ", " + client.player.getId().toString().substring(0, 3) + ")");
-                }
-            }
-        }
-        if (newPos == null) {
-            //Leaving the world
-            //Remove from world
-            this.entityList.remove(entity.getId());
-        }
+        //Do nothing, clients don't store entities in chunks
     }
 }

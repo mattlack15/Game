@@ -1,33 +1,27 @@
 package me.gravitinos.aigame.common.entity;
 
-import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.Setter;
 
-import me.gravitinos.aigame.client.Renderable;
 import me.gravitinos.aigame.common.datawatcher.DataWatcher;
 import me.gravitinos.aigame.common.datawatcher.DataWatcherObject;
 import me.gravitinos.aigame.common.map.Chunk;
 import me.gravitinos.aigame.common.map.GameWorld;
 import me.gravitinos.aigame.common.util.AxisAlignedBoundingBox;
 import me.gravitinos.aigame.common.util.BlockVector;
+import me.gravitinos.aigame.common.util.SharedPalette;
 import me.gravitinos.aigame.common.util.Vector;
+import net.ultragrav.serializer.GravSerializer;
 
-import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ThreadFactory;
-import java.util.concurrent.ThreadPoolExecutor;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicInteger;
 
 public abstract class GameEntity {
 
     public static final DataWatcherObject W_HEALTH = DataWatcher.register(GameEntity.class, false);
     public static final DataWatcherObject W_POSITION = DataWatcher.register(GameEntity.class, false);
-    public static final DataWatcherObject W_LAST_POSITION = DataWatcher.register(GameEntity.class);
+    public static final DataWatcherObject W_LAST_POSITION = DataWatcher.register(GameEntity.class, false);
     public static final DataWatcherObject W_VELOCITY = DataWatcher.register(GameEntity.class, false);
     public static final DataWatcherObject W_FRICTION_FACTOR = DataWatcher.register(GameEntity.class, false);
 
@@ -37,7 +31,7 @@ public abstract class GameEntity {
     @Setter
     private AxisAlignedBoundingBox hitbox = new AxisAlignedBoundingBox(0, 0);
     @Getter
-    private Vector position = null;
+    private Vector position = new Vector(0,0);
     @Getter
     private Vector velocity = new Vector(0, 0);
     @Getter
@@ -49,15 +43,23 @@ public abstract class GameEntity {
     @Setter
     private UUID id = UUID.randomUUID();
 
+    protected boolean dead = true;
+
     //Registry
-    private static Map<String, Class<? extends GameEntity>> REGISTRY = new ConcurrentHashMap<>();
+    private static Map<String, Class<? extends GameEntity>> REGISTRY_NAME = new ConcurrentHashMap<>();
+    private static Map<Class<? extends GameEntity>, String> REGISTRY_CLASS = new ConcurrentHashMap<>();
 
     public static void registerEntity(String name, Class<? extends GameEntity> clazz) {
-        REGISTRY.put(name, clazz);
+        REGISTRY_NAME.put(name, clazz);
+        REGISTRY_CLASS.put(clazz, name);
     }
 
     public static Class<? extends GameEntity> byName(String name) {
-        return REGISTRY.get(name);
+        return REGISTRY_NAME.get(name);
+    }
+
+    public static String byClass(Class<? extends GameEntity> clazz) {
+        return REGISTRY_CLASS.get(clazz);
     }
     //
 
@@ -82,10 +84,10 @@ public abstract class GameEntity {
         for (int x = -searchX; x < searchX; x++) {
             for (int y = -searchY; y < searchY; y++) {
                 BlockVector v = new BlockVector((int) pos.getX() + x, (int) (pos.getY() + y));
-                if(world.getBlockAt(v.getX(), v.getY()).isSolid()) {
+                if (world.getBlockAt(v.getX(), v.getY()).isSolid()) {
                     AxisAlignedBoundingBox bb = new AxisAlignedBoundingBox(1, 1);
                     bb.updatePosition(new Vector(v.getX(), v.getY()));
-                    if(ourBb.intersects(bb)) {
+                    if (ourBb.intersects(bb)) {
                         return true;
                     }
                 }
@@ -100,18 +102,18 @@ public abstract class GameEntity {
 
             Vector testPos = new Vector(newPos.getX(), this.position.getY());
 
-            if(checkCollision(testPos, multiplier)) {
+            if (checkCollision(testPos, multiplier)) {
                 testPos = testPos.setX(this.position.getX());
                 setVelocityInternal(this.velocity.setX(0));
             }
 
             testPos = testPos.setY(newPos.getY());
-            if(checkCollision(testPos, multiplier)) {
+            if (checkCollision(testPos, multiplier)) {
                 testPos = testPos.setY(this.position.getY());
                 setVelocityInternal(this.velocity.setY(0));
             }
 
-            if(this.velocity.isZero())
+            if (this.velocity.isZero())
                 return;
 
             //System.out.println("Setting position to " + testPos);
@@ -171,11 +173,17 @@ public abstract class GameEntity {
         if (getPosition() != null && getPosition().equals(position))
             return;
 
-        world.entityUpdatePosition(this, getPosition(), position);
+        if (!dead)
+            world.entityUpdatePosition(this, getPosition(), position);
 
         dataWatcher.set(W_POSITION, position, weakDirt);
 
         this.position = position;
+    }
+
+    public synchronized void joinWorld() {
+        world.entityJoinWorld(this);
+        dead = false;
     }
 
     public synchronized BlockVector getChunkLocation() {
@@ -183,13 +191,43 @@ public abstract class GameEntity {
     }
 
     public synchronized Chunk getChunk() {
-        return world.getLoadedChunkAt(getChunkLocation().getX(), getChunkLocation().getY());
+        return getChunk(false);
+    }
+
+    public synchronized Chunk getChunk(boolean load) {
+        return load ? world.getChunkAt(getChunkLocation().getX(), getChunkLocation().getY()) :
+                world.getLoadedChunkAt(getChunkLocation().getX(), getChunkLocation().getY());
     }
 
     public synchronized void remove() {
-        Vector flooredPos = getPosition().floor();
-        Chunk currentChunk = world.getChunkAt((int) flooredPos.getX() >> 4, (int) flooredPos.getY() >> 4);
-        currentChunk.removeEntity(this.getId());
-        world.entityUpdatePosition(this, getPosition(), null);
+        world.entityLeaveWorld(this);
+        dead = true;
+    }
+
+    /**
+     * This is to be called when the data watcher's contents are changed so that this entity can update and internal variables with the new values
+     */
+    public void invalidateMeta() {
+    }
+
+    public void serialize(GravSerializer serializer, SharedPalette<String> palette) {
+        String type = GameEntity.byClass(this.getClass());
+        if (type == null) {
+            throw new IllegalStateException("Cannot serialize unregistered entity type: " + this.getClass().getName());
+        }
+        int entityTypeId = palette.getId(type);
+        serializer.writeInt(entityTypeId);
+
+        serializer.writeUUID(this.getId());
+
+        serializer.writeDouble(this.getPosition().getX());
+        serializer.writeDouble(this.getPosition().getY());
+
+        serializer.writeDouble(this.getVelocity().getX());
+        serializer.writeDouble(this.getVelocity().getY());
+
+        serializer.writeDouble(this.getFrictionFactor());
+
+        getDataWatcher().serializeMeta(serializer);
     }
 }

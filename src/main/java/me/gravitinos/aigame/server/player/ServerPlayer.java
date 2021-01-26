@@ -9,6 +9,8 @@ import me.gravitinos.aigame.common.packet.PacketInOutChatMessage;
 import me.gravitinos.aigame.common.util.Vector;
 
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
 
 public class ServerPlayer extends EntityPlayer {
 
@@ -19,9 +21,24 @@ public class ServerPlayer extends EntityPlayer {
     @Getter
     private PlayerChunkMap chunkMap = new PlayerChunkMap();
 
+    private UUID tpConfirmation = null;
+
     public ServerPlayer(GameWorld world, UUID id, String name,  PlayerConnection connection) {
         super(world, id, connection);
         this.setName(name);
+    }
+
+    public synchronized boolean isAwaitingTpConfirmation() {
+        return tpConfirmation != null;
+    }
+
+    public synchronized void confirmTp(UUID tpId) {
+        if(tpConfirmation != null && tpConfirmation.equals(tpId))
+            tpConfirmation = null;
+    }
+
+    public synchronized void setTpConfirmation(UUID tpId) {
+        tpConfirmation = tpId;
     }
 
     @Override

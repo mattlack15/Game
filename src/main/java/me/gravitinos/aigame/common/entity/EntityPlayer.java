@@ -19,23 +19,36 @@ public abstract class EntityPlayer extends GameEntity {
     private PlayerConnection connection;
 
     @Getter
-    private double size = 0.8D;
-
-    @Getter
     @Setter
     private String name = "";
 
     public EntityPlayer(GameWorld world, UUID id, PlayerConnection connection) {
         super(world, id);
-        this.setFrictionFactor(0.45D);
-        this.setHitbox(new AxisAlignedBoundingBox(size, size));
+        this.setFrictionFactor(0.4D);
+        this.getDataWatcher().set(W_SIZE, 0.8D, 0);
+        this.setHitbox(new AxisAlignedBoundingBox(0.8D, 0.8D));
         this.connection = connection;
     }
 
+    public double getSize() {
+        return getDataWatcher().get(W_SIZE);
+    }
+
     public void setSize(double size) {
-        this.size = size;
         this.getDataWatcher().set(W_SIZE, size);
         this.setHitbox(new AxisAlignedBoundingBox(size, size));
+    }
+
+    @Override
+    public synchronized void joinWorld() {
+        getWorld().playerJoinWorld(this);
+        this.dead = false;
+    }
+
+    @Override
+    public synchronized void remove() {
+        getWorld().playerLeaveWorld(this);
+        this.dead = true;
     }
 
     public abstract Inventory getInventory();

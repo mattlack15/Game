@@ -94,9 +94,9 @@ public class GameClient {
         player.setPositionInternal(posVel.position);
         player.setVelocityInternal(posVel.velocity);
 
-        //Create player
-        //world.getChunkAt((int) Math.floor(player.getPosition().getX()) >> 4, (int) Math.floor(player.getPosition().getY()) >> 4)
-        //        .addEntity(player);
+        player.joinWorld();
+
+        player.setPosition(new Vector(0, 4));
 
         frame = new JFrame("Game") {
             public void paint(Graphics g) {
@@ -196,8 +196,6 @@ public class GameClient {
             public void mouseExited(MouseEvent e) {
             }
         });
-
-        player.setPosition(new Vector(0, 4));
     }
 
     @Getter
@@ -423,6 +421,7 @@ public class GameClient {
                     EntityFire fire = new EntityFire(world);
                     fire.setPosition(pos1);
                     fire.setVelocity(player.getVelocity().add(dVel.multiply(-20D)));
+                    fire.joinWorld();
                 }
             }
             if (pressedKeys.contains(KeyEvent.VK_N)) {

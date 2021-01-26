@@ -125,6 +125,16 @@ public class GameWorld {
         this.players.remove(player);
     }
 
+    public synchronized void entityJoinWorld(GameEntity entity) {
+        entity.getChunk(true).addEntity(entity);
+    }
+
+    public synchronized void entityLeaveWorld(GameEntity entity) {
+        Chunk chunk = entity.getChunk();
+        if(chunk != null)
+            chunk.removeEntity(entity.getId());
+    }
+
     public synchronized void entityUpdatePosition(GameEntity entity, Vector oldPos, Vector newPos) {
 
         //Maybe call an event here

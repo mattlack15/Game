@@ -13,5 +13,6 @@ public class PacketHandlerSpawnPlayer implements PacketHandlerClient {
         player.setName(((PacketOutSpawnPlayer) packet).name); //Maybe make the constructor take the name and id ^
         player.setPositionInternal(((PacketOutSpawnPlayer) packet).position);
         player.setVelocityInternal(((PacketOutSpawnPlayer) packet).velocity);
+        player.joinWorld();
     }
 }

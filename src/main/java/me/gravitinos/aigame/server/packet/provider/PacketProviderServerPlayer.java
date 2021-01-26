@@ -26,10 +26,11 @@ public class PacketProviderServerPlayer extends PacketProvider<ServerPlayer> {
             Vector position = dataWatcher.get(GameEntity.W_POSITION);
             Vector velocity = dataWatcher.get(GameEntity.W_VELOCITY);
 
-            Packet packet = new PacketOutEntityPositionVelocity(player.getId(), position, velocity);
+            PacketOutEntityPositionVelocity packet = new PacketOutEntityPositionVelocity(player.getId(), position, velocity);
             packets.other.add(packet);
             if(pos > 1 || vel > 1) { //Dirt level is above 1, meaning it is required to send to the player as well
                 packets.self.add(packet);
+                player.setTpConfirmation(packet.pId);
             }
         }
 

@@ -20,10 +20,14 @@ public abstract class Packet {
 
         registerPacket(PacketInPlayerInfo.class);
         registerPacket(PacketInPlayerMove.class);
+        registerPacket(PacketInPositionConfirmation.class);
 
         registerPacket(PacketOutMapChunk.class);
         registerPacket(PacketOutEntityPositionVelocity.class);
         registerPacket(PacketOutSpawnPlayer.class);
+        registerPacket(PacketOutSetPalette.class);
+        registerPacket(PacketOutSpawnEntity.class);
+        registerPacket(PacketOutDestroyEntity.class);
     }
 
     static void registerPacket(Class<? extends Packet> packetClass) {

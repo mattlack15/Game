@@ -3,6 +3,7 @@ package me.gravitinos.aigame.client.packet;
 import me.gravitinos.aigame.client.GameClient;
 import me.gravitinos.aigame.common.connection.Packet;
 import me.gravitinos.aigame.common.entity.GameEntity;
+import me.gravitinos.aigame.common.packet.PacketInPositionConfirmation;
 import me.gravitinos.aigame.common.packet.PacketOutEntityPositionVelocity;
 
 import java.util.UUID;
@@ -16,6 +17,9 @@ public class PacketHandlerPlayerPositionVelocity implements PacketHandlerClient 
         if(entity == null) {
             System.out.println("Could not find entity " + id.toString().substring(0, 3) + " from " + client.player.getId().toString().substring(0, 3));
             return;
+        }
+        if(entity == client.player) {
+            client.player.getConnection().sendPacket(new PacketInPositionConfirmation(packet.pId));
         }
         entity.setPositionInternal(packet.position);
         entity.setVelocityInternal(packet.velocity);
