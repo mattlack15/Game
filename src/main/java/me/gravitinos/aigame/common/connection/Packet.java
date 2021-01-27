@@ -29,6 +29,7 @@ public abstract class Packet {
         registerPacket(PacketOutSetPalette.class);
         registerPacket(PacketOutSpawnEntity.class);
         registerPacket(PacketOutDestroyEntity.class);
+        registerPacket(PacketOutRemoteDisconnect.class);
     }
 
     static void registerPacket(Class<? extends Packet> packetClass) {

@@ -14,12 +14,9 @@ public class PacketOutMapChunk extends Packet {
         this.cx = (int) chunk.getPosition().getX();
         this.cy = (int) chunk.getPosition().getY();
 
-        int[] immediateData = new int[256];
         data = new short[256];
-        chunk.exportBlocks(immediateData);
-        for (int i = 0; i < immediateData.length; i++) {
-            this.data[i] = (short) immediateData[i];
-        }
+        chunk.exportBlocks(this.data);
+
     }
 
     public PacketOutMapChunk(GravSerializer serializer) {

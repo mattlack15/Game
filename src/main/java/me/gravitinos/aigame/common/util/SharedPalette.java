@@ -11,12 +11,7 @@ public class SharedPalette<T> {
     private int[] hashToId; //Used for object to id
 
     public SharedPalette(int size) {
-        if(size % 2 == 0) {
-            size++;
-        }
-        hashToObject = (T[]) new Object[size];
-        idToObject = (T[]) new Object[size];
-        hashToId = new int[size];
+        clear(size);
     }
 
     public SharedPalette() {
@@ -24,7 +19,16 @@ public class SharedPalette<T> {
     }
 
     public void setPalette(Map<Integer, T> palette) {
+        clear(palette.size());
         palette.forEach((a, b) -> put(b, a));
+    }
+
+    public void clear(int newSize) {
+        if(newSize % 2 == 0)
+            newSize++;
+        hashToObject = (T[]) new Object[newSize];
+        idToObject = (T[]) new Object[newSize];
+        hashToId = new int[newSize];
     }
 
     public synchronized Map<Integer, T> getPalette() {

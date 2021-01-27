@@ -8,6 +8,8 @@ import me.gravitinos.aigame.common.packet.PacketInPlayerMove;
 import me.gravitinos.aigame.common.packet.PacketOutMapChunk;
 import me.gravitinos.aigame.common.util.Vector;
 import me.gravitinos.aigame.server.GameServer;
+import me.gravitinos.aigame.server.event.EventSubscriptions;
+import me.gravitinos.aigame.server.event.events.PlayerMoveEvent;
 import me.gravitinos.aigame.server.player.ServerPlayer;
 
 public class PacketHandlerPlayerMove implements PacketHandlerServer {
@@ -21,13 +23,15 @@ public class PacketHandlerPlayerMove implements PacketHandlerServer {
 
         Vector pos = player.getPosition().add(movement);
 
-        boolean result = server.onMove(player, player.getPosition(), pos);
+        PlayerMoveEvent event = new PlayerMoveEvent(player, player.getPosition(), pos);
+        EventSubscriptions.call(event);
+        boolean result = !event.isCancelled();
 
-        player.setPosition(pos, 1);
+        player.setPosition(event.getNewPosition(), 1);
         if (!result) {
             player.setPosition(pos.subtract(movement), 2);
         } else {
-            player.setVelocity(movement);
+            player.setVelocityInternal(event.getNewPosition().subtract(event.getOldPosition())); //TODO change to something more reliable
         }
     }
 }

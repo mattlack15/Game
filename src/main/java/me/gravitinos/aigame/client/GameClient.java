@@ -6,7 +6,7 @@ import me.gravitinos.aigame.client.player.ClientPlayer;
 import me.gravitinos.aigame.client.player.PacketProviderPlayer;
 import me.gravitinos.aigame.client.render.block.BlockRender;
 import me.gravitinos.aigame.client.render.entity.EntityRender;
-import me.gravitinos.aigame.common.packet.PacketInDisconnect;
+import me.gravitinos.aigame.common.packet.*;
 import me.gravitinos.aigame.common.util.SharedPalette;
 import me.gravitinos.aigame.client.world.ClientWorld;
 import me.gravitinos.aigame.common.RegistryInitializer;
@@ -16,9 +16,6 @@ import me.gravitinos.aigame.common.connection.PlayerConnection;
 import me.gravitinos.aigame.common.connection.SecuredTCPClient;
 import me.gravitinos.aigame.common.entity.*;
 import me.gravitinos.aigame.common.item.ItemStack;
-import me.gravitinos.aigame.common.packet.PacketInOutChatMessage;
-import me.gravitinos.aigame.common.packet.PacketInPlayerInfo;
-import me.gravitinos.aigame.common.packet.PacketOutEntityPositionVelocity;
 import me.gravitinos.aigame.common.util.Vector;
 
 import javax.crypto.NoSuchPaddingException;
@@ -48,8 +45,8 @@ public class GameClient {
 
     public GameClient() {
         instance = this;
-        this.init();
-        this.mainHeartbeat();
+        this.initWindow();
+        this.mainMenu();
     }
 
     private List<Integer> pressedKeys = new ArrayList<>();
@@ -60,22 +57,36 @@ public class GameClient {
     public SharedPalette<GameBlock> blockPalette = new SharedPalette<>();
     public SharedPalette<String> entityPalette = new SharedPalette<>();
 
-    public void init() {
+    public void mainMenu() {
+        while (true) {
+            frame.getGraphics().setColor(Color.DARK_GRAY);
+            frame.getGraphics().fillRect(0, 0, frame.getWidth(), frame.getHeight());
 
-        RegistryInitializer.init();
-        ClientRegistryInitializer.init();
+            String name = JOptionPane.showInputDialog(frame, "Enter your username");
+            String ip = JOptionPane.showInputDialog(frame, "Enter the server's IP or localhost");
 
-        String remote = "192.168.2.173";
-        int remotePort = 6969;
+            try {
+                initWorld(name, ip, 6969);
+            } catch (Exception e) {
+                JOptionPane.showMessageDialog(frame, "Could not connect to server.");
+                continue;
+            }
+
+            try {
+                mainHeartbeat();
+            } catch (IllegalStateException e) {
+                JOptionPane.showMessageDialog(frame, "Disconnected: " + e.getMessage());
+            }
+        }
+    }
+
+    public void initWorld(String username, String remote, int remotePort) throws Exception {
+        //remote = "192.168.2.173";
+        remotePort = 6969;
 
         SecuredTCPClient client;
-        try {
-            client = new SecuredTCPClient(remote, remotePort);
-        } catch (IOException | NoSuchPaddingException | NoSuchAlgorithmException | InvalidKeySpecException | InvalidKeyException e) {
-            throw new RuntimeException(e);
-        }
+        client = new SecuredTCPClient(remote, remotePort);
         PlayerConnection connection = new PlayerConnection(client.getConnection());
-        Random random = new Random(System.currentTimeMillis());
 
         this.camera = new PlayerCamera(new Vector(0, 0), PlayerCamera.scale(CAMERA_WIDTH_PIXELS, DEFAULT_SCALE), PlayerCamera.scale(CAMERA_HEIGHT_PIXELS, DEFAULT_SCALE), DEFAULT_SCALE);
         this.world = new ClientWorld("World", this);
@@ -86,8 +97,9 @@ public class GameClient {
         blockPalette.setPalette(palette);
 
         player = new ClientPlayer(world, UUID.randomUUID(), connection);
+        player.setName(username);
 
-        connection.sendPacket(new PacketInPlayerInfo(player.getId(), player.getId().toString().substring(0, 3)));
+        connection.sendPacket(new PacketInPlayerInfo(player.getId(), username));
         Packet packet = connection.nextPacket();
         if (!(packet instanceof PacketOutEntityPositionVelocity))
             return;
@@ -99,8 +111,14 @@ public class GameClient {
 
         player.joinWorld();
 
-        player.setPosition(new Vector(0, 4));
         player.setShouldDoMovementPrediction(true);
+        player.setPosition(new Vector(0, 4));
+    }
+
+    public void initWindow() {
+
+        RegistryInitializer.init();
+        ClientRegistryInitializer.init();
 
         frame = new JFrame("Game") {
             public void paint(Graphics g) {
@@ -361,8 +379,6 @@ public class GameClient {
         graphics.drawString(String.format("Y Coordinate: %.2f", (player.getPosition().getY())), 10, (sY += 20));
         graphics.drawString("FPS: " + currentFPS, 10, (sY += 20));
         graphics.drawString("TPS: " + currentTPS, 10, (sY += 20));
-        Vector worldPos = camera.fromScreenCoordinates(new Vector(mouseX, mouseY));
-        Vector screenPos = camera.toScreenCoordinates(worldPos).round();
         graphics.drawString("Scale: " + camera.getScale(), 10, (sY += 20));
         graphics.drawString("Speed: " + player.getVelocity().distance(new Vector(0, 0)) * 20D * 3600 / 1000D + " km/h", 10, (sY += 20));
 
@@ -377,11 +393,6 @@ public class GameClient {
 
         world.getEntities().forEach(GameEntity::tick);
 
-        //Send packets
-        PacketProviderPlayer packetProviderPlayer = new PacketProviderPlayer();
-        List<Packet> packets = packetProviderPlayer.getPackets(player, player.getDataWatcher()).self;
-        packets.forEach((p) -> player.getConnection().sendPacket(p));
-
         //Receive packets
         List<Packet> received = new ArrayList<>();
         while (player.getConnection().hasNextPacket()) {
@@ -389,6 +400,9 @@ public class GameClient {
         }
 
         for (Packet packet : received) {
+            if(packet instanceof PacketOutRemoteDisconnect) {
+                throw new IllegalStateException(((PacketOutRemoteDisconnect) packet).reason);
+            }
             PacketHandlerClient handler = PacketHandlerClient.REGISTRY.get(packet.getClass());
             if (handler == null) {
                 System.out.println("Could not handle packet type: " + packet.getClass().getName());
@@ -396,6 +410,11 @@ public class GameClient {
             }
             handler.handlePacket(packet, this);
         }
+
+        //Send packets
+        PacketProviderPlayer packetProviderPlayer = new PacketProviderPlayer();
+        List<Packet> packets = packetProviderPlayer.getPackets(player, player.getDataWatcher()).self;
+        packets.forEach((p) -> player.getConnection().sendPacket(p));
 
     }
 
@@ -418,7 +437,7 @@ public class GameClient {
             if (pressedKeys.contains(KeyEvent.VK_W)) {
                 posAdd = posAdd.add(new Vector(0, -1));
             }
-            if(pressedKeys.contains(KeyEvent.VK_C)) {
+            if (pressedKeys.contains(KeyEvent.VK_C)) {
                 player.checkCollisions = false;
             } else {
                 player.checkCollisions = true;

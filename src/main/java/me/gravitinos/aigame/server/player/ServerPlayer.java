@@ -6,7 +6,9 @@ import me.gravitinos.aigame.common.entity.EntityPlayer;
 import me.gravitinos.aigame.common.inventory.Inventory;
 import me.gravitinos.aigame.common.map.GameWorld;
 import me.gravitinos.aigame.common.packet.PacketInOutChatMessage;
+import me.gravitinos.aigame.common.packet.PacketOutRemoteDisconnect;
 import me.gravitinos.aigame.common.util.Vector;
+import me.gravitinos.aigame.server.GameServer;
 
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -49,6 +51,13 @@ public class ServerPlayer extends EntityPlayer {
     public void sendMessage(String message) {
         PacketInOutChatMessage packet = new PacketInOutChatMessage(message);
         getConnection().sendPacket(packet);
+    }
+
+    public void kick(String message, GameServer server) {
+        if(message == null)
+            message = "You were kicked from the server.";
+        getConnection().sendPacket(new PacketOutRemoteDisconnect(message));
+        server.handleDisconnect(this);
     }
 
     @Override

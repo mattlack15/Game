@@ -17,6 +17,9 @@ import me.gravitinos.aigame.common.map.GameWorld;
 import me.gravitinos.aigame.common.packet.*;
 import me.gravitinos.aigame.common.util.SharedPalette;
 import me.gravitinos.aigame.common.util.Vector;
+import me.gravitinos.aigame.server.event.EventSubscriptions;
+import me.gravitinos.aigame.server.event.EventSuscription;
+import me.gravitinos.aigame.server.event.events.PlayerMoveEvent;
 import me.gravitinos.aigame.server.minigame.MazeGenerator;
 import me.gravitinos.aigame.server.packet.handler.*;
 import me.gravitinos.aigame.server.packet.provider.PacketProviderServerPlayer;
@@ -26,6 +29,7 @@ import me.gravitinos.aigame.server.world.ServerWorld;
 import javax.crypto.NoSuchPaddingException;
 import java.awt.*;
 import java.io.*;
+import java.net.SocketException;
 import java.security.NoSuchAlgorithmException;
 import java.util.*;
 import java.util.List;
@@ -74,6 +78,8 @@ public class GameServer extends SecuredTCPServer {
 
     private void mainLoop() {
 
+        EventSubscriptions.subscribe(this, GameServer.class);
+
         long lastTick;
 
         System.out.println("Press ENTER to stop the server.");
@@ -91,11 +97,11 @@ public class GameServer extends SecuredTCPServer {
                 e.printStackTrace();
             }
             try {
-                if(System.in.available() > 0) {
+                if (System.in.available() > 0) {
                     stop();
                     break;
                 }
-                if(stopping.get()) {
+                if (stopping.get()) {
                     break;
                 }
             } catch (IOException e) {
@@ -105,7 +111,7 @@ public class GameServer extends SecuredTCPServer {
     }
 
     public void stop() {
-        if(stopping.compareAndSet(false, true)) {
+        if (stopping.compareAndSet(false, true)) {
             System.out.println("Stopping server.");
 
             //TODO send kick packets
@@ -166,8 +172,12 @@ public class GameServer extends SecuredTCPServer {
                     }
                     packetHandler.handlePacket((ServerPlayer) player, packet, this);
                 }
-            } catch(Exception e) {
-                handleDisconnect((ServerPlayer) player);
+            } catch (Exception e) {
+                try {
+                    ((ServerPlayer) player).kick("Error with packet handling", this);
+                } catch(Exception e1) {
+                    handleDisconnect((ServerPlayer) player);
+                }
                 System.out.println(player.getName() + " was disconnected.");
             }
         }
@@ -176,15 +186,24 @@ public class GameServer extends SecuredTCPServer {
     private void sendPackets() {
         for (EntityPlayer player : world.getPlayers()) {
             PacketPackage packets = new PacketProviderServerPlayer().getPackets((ServerPlayer) player, player.getDataWatcher());
-            for (Packet packet : packets.self) {
-                player.getConnection().sendPacket(packet);
+            try {
+                for (Packet packet : packets.self) {
+                    player.getConnection().sendPacket(packet);
+                }
+            } catch (Exception e) {
+                handleDisconnect((ServerPlayer) player);
+                break;
             }
             for (Packet packet : packets.other) {
                 for (EntityPlayer worldPlayer : world.getPlayers()) {
-                    if (!worldPlayer.getId().equals(player.getId())) {
-                        if(worldPlayer.getConnection().isClosed())
-                            throw new IllegalStateException();
-                        worldPlayer.getConnection().sendPacket(packet);
+                    try {
+                        if (!worldPlayer.getId().equals(player.getId())) {
+                            if (worldPlayer.getConnection().isClosed())
+                                throw new IllegalStateException();
+                            worldPlayer.getConnection().sendPacket(packet);
+                        }
+                    } catch (Exception e) {
+                        handleDisconnect((ServerPlayer) worldPlayer);
                     }
                 }
             }
@@ -192,14 +211,14 @@ public class GameServer extends SecuredTCPServer {
     }
 
     public void handleDisconnect(ServerPlayer player) {
-        world.playerLeaveWorld(player);
-        Packet packetDestroy = new PacketOutDestroyEntity(player.getId());
-        world.getPlayers().forEach(p -> {
-            p.getConnection().sendPacket(packetDestroy);
-            ((ServerPlayer)p).sendMessage(player.getName() + " left the server.");
-        });
-        player.getConnection().close();
-        System.out.println("DISCONNECT: " + player.getName() + " disconnected.");
+        if (world.getPlayer(player.getId()) != null) {
+            player.remove();
+            world.getPlayers().forEach(p -> ((ServerPlayer) p).sendMessage(player.getName() + " left the server."));
+        }
+        if (!player.getConnection().isClosed()) {
+            player.getConnection().close();
+            System.out.println("DISCONNECT: " + player.getName() + " disconnected.");
+        }
     }
 
     public String onChatMessage(ServerPlayer player, String message) {
@@ -280,14 +299,14 @@ public class GameServer extends SecuredTCPServer {
                 player.getWorld().getPlayers().forEach(p -> p.getConnection().sendPacket(packetOutMapChunk));
             });
 
-            if(pos2.distanceSquared(player.getPosition()) < pos1.distanceSquared(player.getPosition())) {
+            if (pos2.distanceSquared(player.getPosition()) < pos1.distanceSquared(player.getPosition())) {
                 player.setPosition(pos2.add(1, 1));
             } else {
                 player.setPosition(pos1.add(-1, -1));
             }
-        } else if(cmd.equalsIgnoreCase("maze")) {
+        } else if (cmd.equalsIgnoreCase("maze")) {
             long ms = System.currentTimeMillis();
-            int[][] maze = MazeGenerator.generate(101);
+            int[][] maze = MazeGenerator.generate(41);
             long genMs = System.currentTimeMillis() - ms;
             MazeGenerator.placeMaze(maze, this, -60, -60);
             for (EntityPlayer worldPlayer : world.getPlayers()) {
@@ -295,6 +314,19 @@ public class GameServer extends SecuredTCPServer {
             }
             ms = System.currentTimeMillis() - ms;
             player.sendMessage("Created a 41x41 maze in " + ms + "ms. (gen " + genMs + "ms)");
+        } else if(cmd.equalsIgnoreCase("kick")) {
+            if(args.length < 1) {
+                player.sendMessage("Player name needed!");
+                return;
+            }
+            String name = args[0];
+            ServerPlayer player1 = (ServerPlayer) world.getPlayer(name);
+            if(player1 == null) {
+                player.sendMessage("Player not found.");
+                return;
+            }
+            player.sendMessage("You kicked " + player1.getName() + " from the server.");
+            player1.kick("You were kicked from the server by " + player.getName() + ".", this);
         }
     }
 
@@ -306,13 +338,13 @@ public class GameServer extends SecuredTCPServer {
             String name = info.name;
 
             int i = 2; //Start at name2 then name3 then name4 etc
-            while(world.getPlayer(name) != null) {
+            while (world.getPlayer(name) != null) {
                 name = info.name + (i++);
             }
 
             PlayerConnection playerConnection = new PlayerConnection(connection);
             ServerPlayer player = new ServerPlayer(world, id, name, playerConnection);
-            player.setPosition(new Vector(2, 2));
+            player.setPositionInternal(new Vector(2, 2));
 
             //Send position/velocity
             playerConnection.sendPacket(new PacketOutEntityPositionVelocity(id, player.getPosition(), player.getVelocity()));
@@ -324,12 +356,12 @@ public class GameServer extends SecuredTCPServer {
 
             player.joinWorld();
 
-            if(!name.equals(info.name)) {
+            if (!name.equals(info.name)) {
                 player.sendMessage("Your name was changed to " + name);
                 player.sendMessage("because there is already a " + info.name);
             }
 
-            world.getPlayers().forEach(p -> ((ServerPlayer)p).sendMessage(player.getName() + " joined the server."));
+            world.getPlayers().forEach(p -> ((ServerPlayer) p).sendMessage(player.getName() + " joined the server."));
             System.out.println("JOIN: " + player.getName() + " joined the server.");
 
         } catch (Exception e) {
@@ -339,14 +371,19 @@ public class GameServer extends SecuredTCPServer {
 
     private Random rand = new Random();
 
-    public boolean onMove(ServerPlayer player, Vector oldPos, Vector newPos) {
+
+    @EventSuscription
+    public void onMove(PlayerMoveEvent event) {
+        ServerPlayer player = event.getPlayer();
+        Vector newPos = event.getNewPosition();
+        Vector oldPos = event.getOldPosition();
         int border = 80;
         boolean result = newPos.getX() > -border && newPos.getX() < border && newPos.getY() > -border && newPos.getY() < border;
-        if(!result) {
+        if (!result) {
             for (int i = 0; i < 8 + player.getVelocity().length() * 10; i++) {
                 EntityFire fire = new EntityFire(world);
                 fire.setPositionInternal(oldPos);
-                fire.setVelocityInternal(newPos.subtract(oldPos).normalize().multiply(0.26).add(new Vector(rand.nextDouble()*0.4 - 0.2, rand.nextDouble()*0.4 - 0.2)));
+                fire.setVelocityInternal(newPos.subtract(oldPos).normalize().multiply(0.26).add(new Vector(rand.nextDouble() * 0.4 - 0.2, rand.nextDouble() * 0.4 - 0.2)));
                 fire.size = 5;
                 fire.getDataWatcher().set(EntityFire.W_SIZE, fire.size, 0);
                 fire.color = (0xCC << 24) | (0 & 255) << 16 | (100 & 255) << 8 | (150 & 255);
@@ -356,38 +393,37 @@ public class GameServer extends SecuredTCPServer {
             }
             player.setVelocity(oldPos.subtract(newPos).multiply(0.15D).add(oldPos.subtract(newPos).normalize().multiply(0.1D)));
         }
-        return result;
+        event.setCancelled(!result);
     }
 
-    public static void main(String[] args) throws IOException {
-        Console console = System.console();
-        if(console == null && !GraphicsEnvironment.isHeadless()){
-            String filename = GameServer.class.getProtectionDomain().getCodeSource().getLocation().toString().substring(6);
-            Runtime.getRuntime().exec(new String[]{"cmd","/c","start","cmd","/k","java -jar \"" + filename + "\""});
-        }else{
-            main1(new String[0]);
-            System.out.println("Program has ended, please type 'exit' to close the console");
+//    public static void main(String[] args) throws IOException {
+//        Console console = System.console();
+//        if (console == null && !GraphicsEnvironment.isHeadless()) {
+//            String filename = GameServer.class.getProtectionDomain().getCodeSource().getLocation().toString().substring(6);
+//            Runtime.getRuntime().exec(new String[]{"cmd", "/c", "start", "cmd", "/k", "java -jar \"" + filename + "\""});
+//        } else {
+//            main1(new String[0]);
+//            System.out.println("Program has ended, please type 'exit' to close the console");
+//        }
+//    }
+
+
+    public static void main(String[] args) throws InterruptedException {
+
+        new Thread(() -> {
+        try {
+            new GameServer(6969).start();
+            System.exit(0);
+        } catch (IOException | NoSuchPaddingException | NoSuchAlgorithmException e) {
+            e.printStackTrace();
         }
-    }
-
-
-
-    public static void main1(String[] args) {
-
-//        new Thread(() -> {
-            try {
-                new GameServer(6969).start();
-                System.exit(0);
-            } catch (IOException | NoSuchPaddingException | NoSuchAlgorithmException e) {
-                e.printStackTrace();
-            }
-//        }, "Server Thread").start();
+       }, "Server Thread").start();
 //
-//        Thread.sleep(10);
-  //      new Thread(GameClient::new).start();
+        Thread.sleep(10);
+        //      new Thread(GameClient::new).start();
 
 //        Thread.sleep(3000);
 //        System.out.println("Next player joining...");
-    //    new GameClient();
+            new GameClient();
     }
 }

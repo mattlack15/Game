@@ -35,6 +35,12 @@ public class Chunk {
         System.arraycopy(blocks, 0, array, 0, blocks.length);
     }
 
+    public synchronized void exportBlocks(short[] array) {
+        for (int i = 0; i < blocks.length; i++) {
+            array[i] = (short) blocks[i];
+        }
+    }
+
     public synchronized void setBlockIndex(int index, int block) {
         blocks[index] = block;
     }
