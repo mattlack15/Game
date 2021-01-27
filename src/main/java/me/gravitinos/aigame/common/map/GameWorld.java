@@ -170,6 +170,15 @@ public class GameWorld {
         return null;
     }
 
+    public synchronized EntityPlayer getPlayer(String name) {
+        for (EntityPlayer player : getPlayers()) {
+            if(player.getName().equalsIgnoreCase(name)) {
+                return player;
+            }
+        }
+        return null;
+    }
+
     public synchronized void tick() {
         List<EntityPlayer> players = getPlayers();
         Iterator<Map.Entry<BlockVector, Chunk>> it = this.loadedChunks.entrySet().iterator();

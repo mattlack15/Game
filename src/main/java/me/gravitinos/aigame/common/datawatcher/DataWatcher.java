@@ -22,12 +22,14 @@ public class DataWatcher {
     }
 
     public static <T> DataWatcherObject register(Class<?> identifier, boolean isMeta) {
-        idCounters.putIfAbsent(identifier, new AtomicInteger());
         AtomicInteger counter = idCounters.get(identifier);
         Class<?> identifier0 = identifier;
-        while(counter == null) {
+        while(counter == null && identifier != Object.class) {
             identifier = identifier.getSuperclass();
             counter = idCounters.get(identifier);
+        }
+        if(counter == null) {
+            counter = new AtomicInteger();
         }
         counter = new AtomicInteger(counter.get());
         idCounters.put(identifier0, counter);

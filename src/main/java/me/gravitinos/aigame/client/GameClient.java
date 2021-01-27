@@ -6,6 +6,7 @@ import me.gravitinos.aigame.client.player.ClientPlayer;
 import me.gravitinos.aigame.client.player.PacketProviderPlayer;
 import me.gravitinos.aigame.client.render.block.BlockRender;
 import me.gravitinos.aigame.client.render.entity.EntityRender;
+import me.gravitinos.aigame.common.packet.PacketInDisconnect;
 import me.gravitinos.aigame.common.util.SharedPalette;
 import me.gravitinos.aigame.client.world.ClientWorld;
 import me.gravitinos.aigame.common.RegistryInitializer;
@@ -64,7 +65,7 @@ public class GameClient {
         RegistryInitializer.init();
         ClientRegistryInitializer.init();
 
-        String remote = "127.0.0.1";
+        String remote = "192.168.2.173";
         int remotePort = 6969;
 
         SecuredTCPClient client;
@@ -94,9 +95,12 @@ public class GameClient {
         player.setPositionInternal(posVel.position);
         player.setVelocityInternal(posVel.velocity);
 
+        player.checkCollisions = true;
+
         player.joinWorld();
 
         player.setPosition(new Vector(0, 4));
+        player.setShouldDoMovementPrediction(true);
 
         frame = new JFrame("Game") {
             public void paint(Graphics g) {
@@ -105,9 +109,18 @@ public class GameClient {
                 g.drawImage(img, 0, 0, null);
             }
         };
-        frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        frame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
         frame.setSize(CAMERA_WIDTH_PIXELS, CAMERA_HEIGHT_PIXELS);
         frame.setVisible(true);
+
+        frame.addWindowListener(new WindowAdapter() {
+            @Override
+            public void windowClosing(WindowEvent e) {
+                player.getConnection().sendPacket(new PacketInDisconnect());
+                player.getConnection().close();
+                System.exit(0);
+            }
+        });
 
         frame.setIgnoreRepaint(true);
 
@@ -236,7 +249,10 @@ public class GameClient {
 
             double multiplier = sinceLastLoop / (1000D / TICKS_PER_SECOND);
 
-            world.getEntities().forEach(e -> e.tick1(multiplier));
+            world.getEntities().forEach(e -> {
+                if (e.shouldDoMovementPrediction())
+                    e.tick1(multiplier);
+            });
 
             updatePlayer(multiplier * 0.1);
 
@@ -339,16 +355,16 @@ public class GameClient {
 
         //Debug Info
         graphics.setColor(Color.WHITE);
-        graphics.drawString("X Coordinate: " + (player.getPosition().getX()), 10, 50);
-        graphics.drawString("Y Coordinate: " + (player.getPosition().getY()), 10, 70);
-        graphics.drawString("FPS: " + currentFPS, 10, 90);
-        graphics.drawString("TPS: " + currentTPS, 10, 110);
+        int sY = 30;
+        graphics.drawString("Game v1.0 by Matthew Lack", 10, (sY += 20));
+        graphics.drawString(String.format("X Coordinate: %.2f", (player.getPosition().getX())), 10, (sY += 20));
+        graphics.drawString(String.format("Y Coordinate: %.2f", (player.getPosition().getY())), 10, (sY += 20));
+        graphics.drawString("FPS: " + currentFPS, 10, (sY += 20));
+        graphics.drawString("TPS: " + currentTPS, 10, (sY += 20));
         Vector worldPos = camera.fromScreenCoordinates(new Vector(mouseX, mouseY));
         Vector screenPos = camera.toScreenCoordinates(worldPos).round();
-        graphics.drawString("Mouse Loc: " + screenPos.getX() + "   " + screenPos.getY(), 10, 130);
-        graphics.drawString("Actual Mouse Loc: " + mouseX + "   " + mouseY, 10, 150);
-        graphics.drawString("Scale: " + camera.getScale(), 10, 170);
-        graphics.drawString("Speed: " + player.getVelocity().distance(new Vector(0, 0)) * 20D * 3600 / 1000D + " km/h", 10, 190);
+        graphics.drawString("Scale: " + camera.getScale(), 10, (sY += 20));
+        graphics.drawString("Speed: " + player.getVelocity().distance(new Vector(0, 0)) * 20D * 3600 / 1000D + " km/h", 10, (sY += 20));
 
         player.getChatBox().draw(graphics, frame.getWidth(), frame.getHeight());
 
@@ -401,6 +417,11 @@ public class GameClient {
             }
             if (pressedKeys.contains(KeyEvent.VK_W)) {
                 posAdd = posAdd.add(new Vector(0, -1));
+            }
+            if(pressedKeys.contains(KeyEvent.VK_C)) {
+                player.checkCollisions = false;
+            } else {
+                player.checkCollisions = true;
             }
             if (posAdd.abs().sum() != 0D) {
                 Vector dVel = posAdd.multiply(Math.sqrt(speed * speed / posAdd.abs().sum()));

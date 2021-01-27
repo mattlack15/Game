@@ -24,6 +24,8 @@ public class EntityFire extends GameEntity {
     public EntityFire(GameWorld world) {
         super(world);
 
+        this.setShouldDoMovementPrediction(true);
+
         this.setFrictionFactor(0D);
 
         this.life = random.nextInt(14) + 8;

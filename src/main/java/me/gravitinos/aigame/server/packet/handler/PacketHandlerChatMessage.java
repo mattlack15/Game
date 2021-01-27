@@ -12,5 +12,6 @@ public class PacketHandlerChatMessage implements PacketHandlerServer {
         if(message == null)
             return;
         server.world.getPlayers().forEach(p -> p.getConnection().sendPacket(new PacketInOutChatMessage(message)));
+        System.out.println("Chat Message: " + message);
     }
 }

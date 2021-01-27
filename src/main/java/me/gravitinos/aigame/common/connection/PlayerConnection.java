@@ -21,4 +21,16 @@ public class PlayerConnection {
     public boolean hasNextPacket() {
         return connection.hasNext();
     }
+
+    public void close() {
+        try {
+            connection.close();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    public boolean isClosed() {
+        return connection.isClosed();
+    }
 }

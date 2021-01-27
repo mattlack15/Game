@@ -38,7 +38,7 @@ public class SecuredTCPServer implements AutoCloseable {
         cipherRSA = Cipher.getInstance("RSA");
         serverSocket = new ServerSocket(port);
 
-        System.out.println("Server started on " + serverSocket.getInetAddress().getHostName());
+        System.out.println("Server started on " + serverSocket.getInetAddress().getHostAddress() + " " + serverSocket.getInetAddress().getCanonicalHostName());
 
         new Thread(() -> {
             while (true) {

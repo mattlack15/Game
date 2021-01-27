@@ -21,6 +21,7 @@ public abstract class Packet {
         registerPacket(PacketInPlayerInfo.class);
         registerPacket(PacketInPlayerMove.class);
         registerPacket(PacketInPositionConfirmation.class);
+        registerPacket(PacketInDisconnect.class);
 
         registerPacket(PacketOutMapChunk.class);
         registerPacket(PacketOutEntityPositionVelocity.class);

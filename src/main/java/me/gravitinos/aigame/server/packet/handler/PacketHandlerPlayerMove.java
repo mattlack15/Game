@@ -26,6 +26,8 @@ public class PacketHandlerPlayerMove implements PacketHandlerServer {
         player.setPosition(pos, 1);
         if (!result) {
             player.setPosition(pos.subtract(movement), 2);
+        } else {
+            player.setVelocity(movement);
         }
     }
 }

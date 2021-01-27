@@ -27,6 +27,7 @@ public abstract class GameEntity {
     public static final DataWatcherObject W_LAST_POSITION = DataWatcher.register(GameEntity.class, false);
     public static final DataWatcherObject W_VELOCITY = DataWatcher.register(GameEntity.class, false);
     public static final DataWatcherObject W_FRICTION_FACTOR = DataWatcher.register(GameEntity.class, false);
+    public static final DataWatcherObject W_DO_MOVEMENT_PREDICTION = DataWatcher.register(GameEntity.class); //For client
 
     @Getter
     private DataWatcher dataWatcher = new DataWatcher();
@@ -44,7 +45,7 @@ public abstract class GameEntity {
 
     @Getter
     @Setter
-    private UUID id = UUID.randomUUID();
+    private UUID id;
 
     protected boolean dead = true;
 
@@ -71,9 +72,7 @@ public abstract class GameEntity {
     //
 
     public GameEntity(GameWorld world) {
-        this.world = world;
-        this.setPositionInternal(new Vector(0, 0));
-        this.setVelocityInternal(new Vector(0, 0));
+        this(world, UUID.randomUUID());
     }
 
     public GameEntity(GameWorld world, UUID id) {
@@ -81,9 +80,12 @@ public abstract class GameEntity {
         this.world = world;
         this.setPositionInternal(new Vector(0, 0));
         this.setVelocityInternal(new Vector(0, 0));
+
+        getDataWatcher().set(W_FRICTION_FACTOR, frictionFactor, 0);
+        getDataWatcher().set(W_DO_MOVEMENT_PREDICTION, false, 0);
     }
 
-    private boolean checkCollision(Vector pos, double multiplier) {
+    protected boolean checkCollision(Vector pos, double multiplier) {
         int searchX = (int) Math.abs(this.velocity.getX() * multiplier) + 2;
         int searchY = (int) Math.abs(this.velocity.getY() * multiplier) + 2;
         AxisAlignedBoundingBox ourBb = new AxisAlignedBoundingBox(getHitbox().getSizeX(), getHitbox().getSizeY());
@@ -103,29 +105,18 @@ public abstract class GameEntity {
         return false;
     }
 
+    public boolean shouldDoMovementPrediction() {
+        return getDataWatcher().get(W_DO_MOVEMENT_PREDICTION);
+    }
+
+    public void setShouldDoMovementPrediction(boolean val) {
+        getDataWatcher().set(W_DO_MOVEMENT_PREDICTION, val);
+    }
+
     public synchronized void tick1(double multiplier) {
         if (!this.velocity.isZero()) {
             Vector newPos = this.position.add(this.velocity.multiply(multiplier));
-
-            Vector testPos = new Vector(newPos.getX(), this.position.getY());
-
-            if (checkCollision(testPos, multiplier)) {
-                testPos = testPos.setX(this.position.getX());
-                setVelocityInternal(this.velocity.setX(0));
-            }
-
-            testPos = testPos.setY(newPos.getY());
-            if (checkCollision(testPos, multiplier)) {
-                testPos = testPos.setY(this.position.getY());
-                setVelocityInternal(this.velocity.setY(0));
-            }
-
-            if (this.velocity.isZero())
-                return;
-
-            //System.out.println("Setting position to " + testPos);
-
-            this.setPosition(testPos);
+            this.setPosition(newPos);
         }
     }
 

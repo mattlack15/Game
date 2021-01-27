@@ -173,4 +173,8 @@ public class SecuredTCPConnection implements AutoCloseable {
         socket.close();
     }
 
+    public boolean isClosed() {
+        return socket.isClosed();
+    }
+
 }
