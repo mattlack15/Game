@@ -5,6 +5,7 @@ import me.gravitinos.aigame.common.blocks.GameBlockType;
 import me.gravitinos.aigame.common.connection.Packet;
 import me.gravitinos.aigame.common.map.Chunk;
 import me.gravitinos.aigame.common.packet.PacketInPlayerMove;
+import me.gravitinos.aigame.common.packet.PacketOutEntityPositionVelocity;
 import me.gravitinos.aigame.common.packet.PacketOutMapChunk;
 import me.gravitinos.aigame.common.util.Vector;
 import me.gravitinos.aigame.server.GameServer;
@@ -18,7 +19,7 @@ public class PacketHandlerPlayerMove implements PacketHandlerServer {
         PacketInPlayerMove move = (PacketInPlayerMove) packet;
         Vector movement = move.movement;
 
-        if(player.isAwaitingTpConfirmation())
+        if (player.isAwaitingTpConfirmation())
             return; //Ignore this packet
 
         Vector pos = player.getPosition().add(movement);

@@ -17,11 +17,13 @@ public abstract class Packet {
     static {
 
         registerPacket(PacketInOutChatMessage.class);
+        registerPacket(PacketInOutPing.class);
 
         registerPacket(PacketInPlayerInfo.class);
         registerPacket(PacketInPlayerMove.class);
         registerPacket(PacketInPositionConfirmation.class);
         registerPacket(PacketInDisconnect.class);
+        registerPacket(PacketInPlayerInteract.class);
 
         registerPacket(PacketOutMapChunk.class);
         registerPacket(PacketOutEntityPositionVelocity.class);
@@ -30,6 +32,7 @@ public abstract class Packet {
         registerPacket(PacketOutSpawnEntity.class);
         registerPacket(PacketOutDestroyEntity.class);
         registerPacket(PacketOutRemoteDisconnect.class);
+        registerPacket(PacketOutTitle.class);
     }
 
     static void registerPacket(Class<? extends Packet> packetClass) {

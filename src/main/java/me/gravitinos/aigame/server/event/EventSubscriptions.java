@@ -13,6 +13,7 @@ public class EventSubscriptions {
 
         public MethodCaller(Method m, BiConsumer<Object, Object> consumer) {
             this.consumer = consumer;
+            this.m = m;
         }
 
         @Override
@@ -46,7 +47,7 @@ public class EventSubscriptions {
     public static void subscribe(Object o, Class<?> c) {
         callerMap.putIfAbsent(c, new HashMap<>()); //Add to the caller map (object class -> event class -> callers)
         for (Method m : c.getDeclaredMethods()) {
-            if (m.isAnnotationPresent(EventSuscription.class)) {
+            if (m.isAnnotationPresent(EventSubscription.class)) {
                 if (m.getParameterTypes().length < 1)
                     continue;
                 Class<?> eventType = m.getParameterTypes()[0];
@@ -57,6 +58,7 @@ public class EventSubscriptions {
                 List<MethodCaller> callerList = callerMap.get(c).get(eventType);
                 MethodCaller caller = new MethodCaller(m, (a, b) -> {
                     try {
+                        m.setAccessible(true);
                         m.invoke(a, b);
                     } catch (IllegalAccessException | InvocationTargetException e) {
                         e.printStackTrace();

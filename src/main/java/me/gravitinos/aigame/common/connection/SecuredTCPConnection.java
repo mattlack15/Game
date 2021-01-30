@@ -4,6 +4,7 @@ import net.ultragrav.serializer.GravSerializer;
 
 import java.io.IOException;
 import java.net.Socket;
+import java.net.SocketException;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class SecuredTCPConnection implements AutoCloseable {
@@ -20,11 +21,16 @@ public class SecuredTCPConnection implements AutoCloseable {
 
     public SecuredTCPConnection(Socket socket, int bufferSize) {
         this.socket = socket;
+        try {
+            socket.setTcpNoDelay(true);
+        } catch (SocketException e) {
+            e.printStackTrace();
+        }
         this.buffer = new byte[bufferSize];
     }
 
     public SecuredTCPConnection(Socket socket) {
-        this(socket, 65535);
+        this(socket, 65536);
     }
 
 
@@ -59,6 +65,9 @@ public class SecuredTCPConnection implements AutoCloseable {
             //Read data
             if (left() < size) {
                 bufferPos = mark;
+                if(left() + (buffer.length - bufferLength.get()) < size) {
+                    throw new IllegalStateException("Received data (" + (size+4) + ") is more than buffer length (" + buffer.length + ")!");
+                }
                 return null;
             }
 
@@ -93,9 +102,18 @@ public class SecuredTCPConnection implements AutoCloseable {
                     }
                 }
 
-                int n = socket.getInputStream().read(buffer, bufferLength.get(), block ? buffer.length - left() : socket.getInputStream().available());
+                int available = socket.getInputStream().available();
+                int n;
+                try {
+                    int bufferDataEnd = bufferLength.get();
+                    int maxReadLength = buffer.length - bufferDataEnd;
+                    n = socket.getInputStream().read(buffer, bufferDataEnd, block ? maxReadLength : Math.min(socket.getInputStream().available(), maxReadLength));
+                } catch (IndexOutOfBoundsException e) {
+                    System.out.println("buffer size: " + buffer.length + " bufferLength: " + bufferLength.get() + " left: " + left() + " avail: " + available);
+                    throw e;
+                }
 
-                if(n >= 0) {
+                if (n >= 0) {
                     bufferLength.addAndGet(n);
                 } else {
                     throw new IllegalStateException("Connection closed.");
@@ -161,10 +179,10 @@ public class SecuredTCPConnection implements AutoCloseable {
         try {
             synchronized (lock) {
                 socket.getOutputStream().write(toSend);
+                socket.getOutputStream().flush();
             }
-            socket.getOutputStream().flush();
         } catch (IOException e) {
-            e.printStackTrace();
+            throw new RuntimeException(e);
         }
     }
 

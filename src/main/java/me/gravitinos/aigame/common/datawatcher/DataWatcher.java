@@ -1,8 +1,11 @@
 package me.gravitinos.aigame.common.datawatcher;
 
+import me.gravitinos.aigame.common.util.Vector;
 import net.ultragrav.serializer.GravSerializer;
 
-import java.util.*;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.ReadWriteLock;

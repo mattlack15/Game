@@ -14,6 +14,6 @@ public class EntityRenderPlayer extends EntityRender<EntityPlayer> {
 
         graphics.setColor(Color.WHITE);
         graphics.setFont(new Font("", Font.PLAIN | Font.BOLD, 16));
-        graphics.drawString(entity.getName(), (int) position.getX() - 5, (int) (position.getY() - 18));
+        graphics.drawString(entity.getName(), (int) position.getX() - graphics.getFontMetrics().stringWidth(entity.getName()) / 2 + 10, (int) (position.getY() - 18));
     }
 }

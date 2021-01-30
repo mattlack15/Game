@@ -6,6 +6,7 @@ import me.gravitinos.aigame.common.packet.PacketOutMapChunk;
 import me.gravitinos.aigame.server.GameServer;
 import me.gravitinos.aigame.server.player.ServerPlayer;
 
+import java.security.SecureRandom;
 import java.util.*;
 
 public class MazeGenerator {
@@ -21,12 +22,14 @@ public class MazeGenerator {
         int[][] maze = new int[size][size];
 
         Breadcrumb<Integer> crumb = new Breadcrumb<>();
-        crumb.data = 1;
-        crumb.data2 = 1;
+        crumb.data = size-2;
+        crumb.data2 = size-2;
 
-        Random rand = new Random();
+        SecureRandom rand = new SecureRandom();
 
         List<Breadcrumb<Integer>> possibilities = new ArrayList<>();
+
+        int allowedLoops = 2;
 
         while (crumb != null) {
             //Check available neighbors
@@ -37,7 +40,7 @@ public class MazeGenerator {
 
             //Left
             if (x - 2 >= 1) {
-                if (maze[x - 2][y] != 1) {
+                if (maze[x - 2][y] < allowedLoops) {
                     Breadcrumb<Integer> n = new Breadcrumb<>();
                     n.data = x - 2;
                     n.data2 = y;
@@ -45,7 +48,7 @@ public class MazeGenerator {
                 }
             }
             if (x + 2 < size-1) {
-                if (maze[x + 2][y] != 1) {
+                if (maze[x + 2][y] < allowedLoops) {
                     Breadcrumb<Integer> n = new Breadcrumb<>();
                     n.data = x + 2;
                     n.data2 = y;
@@ -53,7 +56,7 @@ public class MazeGenerator {
                 }
             }
             if (y - 2 >= 1) {
-                if (maze[x][y - 2] != 1) {
+                if (maze[x][y - 2] < allowedLoops) {
                     Breadcrumb<Integer> n = new Breadcrumb<>();
                     n.data = x;
                     n.data2 = y - 2;
@@ -61,7 +64,7 @@ public class MazeGenerator {
                 }
             }
             if (y + 2 < size-1) {
-                if (maze[x][y + 2] != 1) {
+                if (maze[x][y + 2] < allowedLoops) {
                     Breadcrumb<Integer> n = new Breadcrumb<>();
                     n.data = x;
                     n.data2 = y + 2;
@@ -80,7 +83,7 @@ public class MazeGenerator {
             //Set the wall and square to visited
             for (int i = Math.min(next.data, x); i <= Math.max(next.data, x); i++) {
                 for (int j = Math.min(next.data2, y); j <= Math.max(next.data2, y); j++) {
-                    maze[i][j] = 1;
+                    maze[i][j]++;
                 }
             }
 

@@ -1,11 +1,19 @@
 package me.gravitinos.aigame.common.util;
 
-public class Vector {
+import net.ultragrav.serializer.GravSerializable;
+import net.ultragrav.serializer.GravSerializer;
+
+public class Vector implements GravSerializable {
     private final double x;
     private final double y;
     public Vector(double x, double y) {
         this.x = x;
         this.y = y;
+    }
+
+    public Vector(GravSerializer serializer) {
+        this.x = serializer.readDouble();
+        this.y = serializer.readDouble();
     }
 
     public double getX() {
@@ -107,5 +115,11 @@ public class Vector {
     @Override
     public String toString() {
         return "{" + this.x + ", " + this.y + "}";
+    }
+
+    @Override
+    public void serialize(GravSerializer gravSerializer) {
+        gravSerializer.writeDouble(this.x);
+        gravSerializer.writeDouble(this.y);
     }
 }

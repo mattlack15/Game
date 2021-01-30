@@ -19,6 +19,7 @@ import me.gravitinos.aigame.common.item.ItemStack;
 import me.gravitinos.aigame.common.util.Vector;
 
 import javax.crypto.NoSuchPaddingException;
+import javax.sound.sampled.AudioSystem;
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.*;
@@ -37,7 +38,7 @@ public class GameClient {
     @Getter
     private JFrame frame;
 
-    public static final int TICKS_PER_SECOND = 30;
+    public static final int TICKS_PER_SECOND = 50;
 
     public static final int CAMERA_WIDTH_PIXELS = 850;
     public static final int CAMERA_HEIGHT_PIXELS = 750;
@@ -62,7 +63,11 @@ public class GameClient {
             frame.getGraphics().setColor(Color.DARK_GRAY);
             frame.getGraphics().fillRect(0, 0, frame.getWidth(), frame.getHeight());
 
-            String name = JOptionPane.showInputDialog(frame, "Enter your username");
+            String name = JOptionPane.showInputDialog(frame, "Enter your username, (Or EXIT to close)");
+            if(name.equalsIgnoreCase("exit")) {
+                frame.dispose();
+                return;
+            }
             String ip = JOptionPane.showInputDialog(frame, "Enter the server's IP or localhost");
 
             try {
@@ -82,7 +87,7 @@ public class GameClient {
 
     public void initWorld(String username, String remote, int remotePort) throws Exception {
         //remote = "192.168.2.173";
-        remotePort = 6969;
+        remotePort = 42070;
 
         SecuredTCPClient client;
         client = new SecuredTCPClient(remote, remotePort);
@@ -163,11 +168,15 @@ public class GameClient {
                         return;
                     if (!player.getChatBox().isTyping())
                         pressedKeys.add(e.getKeyCode());
-                    if (e.getKeyCode() == KeyEvent.VK_T) {
+                    if (e.getKeyCode() == KeyEvent.VK_T || e.getKeyCode() == KeyEvent.VK_SLASH) {
                         if (!player.getChatBox().isTyping()) {
+                            player.getChatBox().clearCurrentLine();
                             player.getChatBox().give.set(true);
                             player.getChatBox().setTyping(true);
                             pressedKeys.clear();
+                            if(e.getKeyCode() == KeyEvent.VK_SLASH) {
+                                player.getChatBox().addChar('/');
+                            }
                         }
                     } else if (e.getKeyCode() == KeyEvent.VK_ENTER) {
                         String message = player.getChatBox().getCurrentLine();
@@ -207,7 +216,11 @@ public class GameClient {
             @Override
             public void mouseClicked(MouseEvent e) {
                 if (e.getButton() == MouseEvent.BUTTON1) {
-
+                    if(camera != null) {
+                        Vector pos = new Vector(e.getX(), e.getY());
+                        pos = camera.fromScreenCoordinates(pos);
+                        player.getConnection().sendPacket(new PacketInPlayerInteract(pos.getX(), pos.getY()));
+                    }
                 }
             }
 
@@ -274,6 +287,8 @@ public class GameClient {
 
             updatePlayer(multiplier * 0.1);
 
+            receivePackets();
+
             long tick1Ms = System.currentTimeMillis();
 
             render();
@@ -298,6 +313,8 @@ public class GameClient {
         long ms = System.currentTimeMillis();
 
         //Render blocks
+        if(camera == null)
+            return;
         camera.setWidth(PlayerCamera.scale(frame.getWidth(), camera.getScale()));
         camera.setHeight(PlayerCamera.scale(frame.getHeight(), camera.getScale()));
         double width = camera.scale(camera.getWidth());
@@ -388,14 +405,10 @@ public class GameClient {
 
     }
 
-    public void tick() {
-        world.tick();
-
-        world.getEntities().forEach(GameEntity::tick);
-
+    private void receivePackets() {
         //Receive packets
         List<Packet> received = new ArrayList<>();
-        while (player.getConnection().hasNextPacket()) {
+        while (!player.getConnection().isClosed() && player.getConnection().hasNextPacket()) {
             received.add(player.getConnection().nextPacket());
         }
 
@@ -410,10 +423,20 @@ public class GameClient {
             }
             handler.handlePacket(packet, this);
         }
+    }
+
+    public void tick() {
+        world.tick();
+
+        world.getEntities().forEach(GameEntity::tick);
+
+        receivePackets();
 
         //Send packets
         PacketProviderPlayer packetProviderPlayer = new PacketProviderPlayer();
         List<Packet> packets = packetProviderPlayer.getPackets(player, player.getDataWatcher()).self;
+        if(player.getConnection().isClosed())
+            throw new IllegalStateException("Disconnected!");
         packets.forEach((p) -> player.getConnection().sendPacket(p));
 
     }
@@ -422,7 +445,7 @@ public class GameClient {
         Random random = new Random(System.currentTimeMillis());
 
         synchronized (this) {
-            double speed = pressedKeys.contains(KeyEvent.VK_CONTROL) ? 0.6D : 0.28D;
+            double speed = pressedKeys.contains(KeyEvent.VK_CONTROL) ? 0.6D * 0.4 : 0.28D * 0.4;
             speed *= multiplier;
             Vector posAdd = new Vector(0, 0);
             if (pressedKeys.contains(KeyEvent.VK_A)) {

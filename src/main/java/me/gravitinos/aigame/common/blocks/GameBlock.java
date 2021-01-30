@@ -15,12 +15,12 @@ public abstract class GameBlock {
     private static Map<String, GameBlock> names = new HashMap<>();
     private static AtomicInteger idCounter = new AtomicInteger();
 
-    public static int registerBlock(GameBlock block, String identifier) {
+    public static GameBlock registerBlock(GameBlock block, String identifier) {
         synchronized (GameBlock.class) {
             int id = idCounter.getAndIncrement();
             ids.put(block, id);
             names.put(identifier.toLowerCase(), block);
-            return id;
+            return block;
         }
     }
 

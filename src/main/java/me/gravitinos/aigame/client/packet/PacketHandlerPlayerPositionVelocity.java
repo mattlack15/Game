@@ -9,6 +9,10 @@ import me.gravitinos.aigame.common.packet.PacketOutEntityPositionVelocity;
 import java.util.UUID;
 
 public class PacketHandlerPlayerPositionVelocity implements PacketHandlerClient {
+
+    private int count = 0;
+    private long ms = System.currentTimeMillis();
+
     @Override
     public void handlePacket(Packet pack, GameClient client) {
         PacketOutEntityPositionVelocity packet = (PacketOutEntityPositionVelocity) pack;
