@@ -91,8 +91,16 @@ public class SharedPalette<T> {
         }
     }
 
+    /**
+     * Get the object associated with the given id
+     */
     public T byId(int id) {
-        return id >= idToObject.length ? null : idToObject[id];
+        try {
+            attainRead();
+            return id >= idToObject.length ? null : idToObject[id];
+        } finally {
+            releaseRead();
+        }
     }
 
     public int getId(T obj) {
@@ -166,10 +174,16 @@ public class SharedPalette<T> {
         return hash;
     }
 
+    /**
+     * Wait for our turn to be able to read (attain read permission)
+     * multiple reads can happen concurrently, but not during a write
+     */
     private void attainRead() {
         reading.incrementAndGet();
         while(writeThread.get() != null) {
+            reading.decrementAndGet();
             Thread.yield();
+            reading.incrementAndGet();
         }
     }
 
@@ -177,12 +191,16 @@ public class SharedPalette<T> {
         reading.decrementAndGet();
     }
 
+    /**
+     * Wait for our turn to be able to write (attain write permission)
+     */
     private void attainWrite() {
         //Check if we already have it
         if(writeThread.get() == Thread.currentThread())
             return;
 
-        //If we don't have it, try and get it, and if there are readers, yield
+        //If we don't have it, try and get it, and if there are readers, yield, once we acquire it,
+        //wait for remaining readers, no more readers will be allowed
         while((writeThread.get() != Thread.currentThread() && !writeThread.compareAndSet(null, Thread.currentThread()))
         || reading.get() > 0)
             Thread.yield();

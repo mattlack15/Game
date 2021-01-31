@@ -1,15 +1,13 @@
 package me.gravitinos.aigame.client.player;
 
-import me.gravitinos.aigame.common.connection.Packet;
+import me.gravitinos.aigame.client.GameClient;
 import me.gravitinos.aigame.common.datawatcher.DataWatcher;
 import me.gravitinos.aigame.common.datawatcher.PacketPackage;
 import me.gravitinos.aigame.common.datawatcher.PacketProvider;
 import me.gravitinos.aigame.common.entity.GameEntity;
+import me.gravitinos.aigame.common.packet.PacketInPlayerInteract;
 import me.gravitinos.aigame.common.packet.PacketInPlayerMove;
 import me.gravitinos.aigame.common.util.Vector;
-
-import java.util.ArrayList;
-import java.util.List;
 
 public class PacketProviderPlayer extends PacketProvider<ClientPlayer> {
     @Override
@@ -25,6 +23,16 @@ public class PacketProviderPlayer extends PacketProvider<ClientPlayer> {
             }
             Vector dPos = position.subtract(previous);
             packets.self.add(new PacketInPlayerMove(dPos));
+        }
+
+
+        //At end
+        if(player.interact.compareAndSet(true, false)) {
+            Vector pos = new Vector(player.client.getMouseX(), player.client.getMouseY());
+            pos = player.client.camera.fromScreenCoordinates(pos);
+            pos = player.getPosition();
+            pos.floor();
+            packets.self.add(new PacketInPlayerInteract(pos.getX(), pos.getY()));
         }
 
         return packets;

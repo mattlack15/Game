@@ -24,14 +24,21 @@ public class DataWatcher {
         return register(identifier, true);
     }
 
+    /**
+     * Get a new data watcher object associated with the specified group (identifier)
+     *
+     * @param identifier The identifier of the group
+     * @param isMeta     Whether the object should be considered meta
+     * @return A new data watcher object that is unique within its group
+     */
     public static <T> DataWatcherObject register(Class<?> identifier, boolean isMeta) {
         AtomicInteger counter = idCounters.get(identifier);
         Class<?> identifier0 = identifier;
-        while(counter == null && identifier != Object.class) {
+        while (counter == null && identifier != Object.class) {
             identifier = identifier.getSuperclass();
             counter = idCounters.get(identifier);
         }
-        if(counter == null) {
+        if (counter == null) {
             counter = new AtomicInteger();
         }
         counter = new AtomicInteger(counter.get());
@@ -44,15 +51,18 @@ public class DataWatcher {
     private Map<Integer, DataWatcherEntry<?>> entryMap = new HashMap<>();
     private ReadWriteLock lock = new ReentrantReadWriteLock();
 
+    /**
+     * Set the value of a field with a weak dirt level of 1
+     */
     public <T> void set(DataWatcherObject object, T value) {
         set(object, value, 1);
     }
 
 
-        /**
-         * Set the value of a data object and if the object's dirt value is lower than the supplied dirt,
-         * then the dirt value is updated to the supplied dirt.
-         */
+    /**
+     * Set the value of a data object and if the object's dirt value is lower than the supplied dirt,
+     * then the dirt value is updated to the supplied dirt.
+     */
     public <T> void set(DataWatcherObject object, T value, int weakDirt) {
         lock.writeLock().lock();
         try {
@@ -60,7 +70,7 @@ public class DataWatcher {
             //Get entry
             entryMap.putIfAbsent(id, new DataWatcherEntry<>());
             DataWatcherEntry entry = entryMap.get(id);
-            if(!Objects.equals(entry.obj, value)) {
+            if (!Objects.equals(entry.obj, value)) {
                 entry.obj = value;
                 entry.dirt = Math.max(entry.dirt, weakDirt);
             }
@@ -70,6 +80,9 @@ public class DataWatcher {
         }
     }
 
+    /**
+     * Set the full state of a field
+     */
     public <T> void setState(DataWatcherObject object, T value, int dirt) {
         lock.writeLock().lock();
         try {
@@ -77,7 +90,7 @@ public class DataWatcher {
             //Get entry
             entryMap.putIfAbsent(id, new DataWatcherEntry<>());
             DataWatcherEntry entry = entryMap.get(id);
-            if(!Objects.equals(entry.obj, value)) {
+            if (!Objects.equals(entry.obj, value)) {
                 entry.obj = value;
                 entry.dirt = dirt;
             }
@@ -87,11 +100,14 @@ public class DataWatcher {
         }
     }
 
+    /**
+     * Get the value of a field
+     */
     public <T> T get(DataWatcherObject object) {
         lock.readLock().lock();
         try {
             int id = object.id;
-            if(!entryMap.containsKey(id)) {
+            if (!entryMap.containsKey(id)) {
                 return null;
             }
 
@@ -102,11 +118,14 @@ public class DataWatcher {
         }
     }
 
+    /**
+     * Check if a field has at least the provided dirt level
+     */
     public boolean isDirty(DataWatcherObject object, int requiredDirt) {
         lock.readLock().lock();
         try {
             int id = object.id;
-            if(!entryMap.containsKey(id)) {
+            if (!entryMap.containsKey(id)) {
                 return false;
             }
             return entryMap.get(id).dirt >= requiredDirt;
@@ -115,11 +134,14 @@ public class DataWatcher {
         }
     }
 
+    /**
+     * Set the dirt of a field
+     */
     public int setDirt(DataWatcherObject object, int dirt) {
         lock.writeLock().lock();
         try {
             int id = object.id;
-            if(!entryMap.containsKey(id)) {
+            if (!entryMap.containsKey(id)) {
                 return 0;
             }
             int prevDirt = entryMap.get(id).dirt;
@@ -134,7 +156,7 @@ public class DataWatcher {
         lock.readLock().lock();
         try {
             for (Map.Entry<Integer, DataWatcherEntry<?>> entry : this.entryMap.entrySet()) {
-                if(entry.getValue().meta && entry.getValue().dirt > 0) {
+                if (entry.getValue().meta && entry.getValue().dirt > 0) {
                     return true;
                 }
             }
@@ -149,14 +171,14 @@ public class DataWatcher {
         try {
             AtomicInteger am = new AtomicInteger();
             this.entryMap.forEach((id, data) -> {
-                    if(data.meta && data.dirt > 0) {
-                        am.getAndIncrement();
-                    }
+                if (data.meta && data.dirt > 0) {
+                    am.getAndIncrement();
+                }
             });
             serializer.writeInt(am.get());
             this.entryMap.forEach((id, data) -> {
-                if(data.meta && data.dirt > 0) {
-                    if(markNonDirty)
+                if (data.meta && data.dirt > 0) {
+                    if (markNonDirty)
                         data.dirt = 0;
                     serializer.writeInt(id);
                     serializer.writeObject(data.obj);
@@ -172,13 +194,13 @@ public class DataWatcher {
         try {
             AtomicInteger am = new AtomicInteger();
             this.entryMap.forEach((id, data) -> {
-                if(data.meta) {
+                if (data.meta) {
                     am.getAndIncrement();
                 }
             });
             serializer.writeInt(am.get());
             this.entryMap.forEach((id, data) -> {
-                if(data.meta) {
+                if (data.meta) {
                     serializer.writeInt(id);
                     serializer.writeObject(data.obj);
                 }
@@ -188,6 +210,9 @@ public class DataWatcher {
         }
     }
 
+    /**
+     * Update the fields provided in the serializer and set the dirt level to the provided dirt level
+     */
     public void updateStrongDirt(GravSerializer serializer, int strongDirt) {
         lock.writeLock().lock();
         try {
@@ -196,7 +221,7 @@ public class DataWatcher {
                 int id = serializer.readInt();
                 Object o = serializer.readObject();
                 DataWatcherEntry entry = entryMap.get(id);
-                if(entry != null) {
+                if (entry != null) {
                     entry.obj = o;
                     entry.dirt = strongDirt;
                 }
@@ -206,6 +231,9 @@ public class DataWatcher {
         }
     }
 
+    /**
+     * Update the fields provided in the serializer and set the dirt level to at least the provided dirt level
+     */
     public void updateWeakDirt(GravSerializer serializer, int weakDirt) {
         lock.writeLock().lock();
         try {
@@ -214,7 +242,7 @@ public class DataWatcher {
                 int id = serializer.readInt();
                 Object o = serializer.readObject();
                 DataWatcherEntry entry = entryMap.get(id);
-                if(entry != null) {
+                if (entry != null) {
                     entry.obj = o;
                     entry.dirt = Math.max(entry.dirt, weakDirt);
                 }

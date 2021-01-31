@@ -209,6 +209,13 @@ public class GameServer extends SecuredTCPServer {
                 }
             }
         }
+        ((ServerWorld)world).getAndClearUpdated().forEach((c) -> {
+            PacketOutMapChunk chunkPacket = new PacketOutMapChunk(c);
+            world.getPlayers().forEach(p -> {
+               // if (((ServerPlayer) p).getChunkMap().isLoaded((int) c.getPosition().getX(), (int) c.getPosition().getY()))
+                    p.getConnection().sendPacket(chunkPacket);
+            });
+        });
     }
 
     public void handleDisconnect(ServerPlayer player) {
@@ -241,7 +248,7 @@ public class GameServer extends SecuredTCPServer {
 
     public void onCommand(ServerPlayer player, String cmd, String[] args) {
 
-        System.out.println(player.getName() + " entered command: /" + cmd + String.join(" ", args));
+        System.out.println(player.getName() + " entered command: /" + cmd + " " + String.join(" ", args));
 
         if (cmd.equalsIgnoreCase("help")) {
             player.sendMessage("You can do /help,");
@@ -388,11 +395,18 @@ public class GameServer extends SecuredTCPServer {
 
     @EventSubscription
     private void onInteract(PlayerInteractEvent event) {
-        EntityBullet bullet = new EntityBullet(world);
-        bullet.setPositionInternal(event.getPlayer().getPosition());
-        bullet.setVelocityInternal(event.getPosition().subtract(event.getPlayer().getPosition()).normalize().multiply(0.5));
-        bullet.setShouldDoMovementPrediction(true);
-        bullet.joinWorld();
+
+        world.setBlockAt((int) event.getPosition().getX(), (int) event.getPosition().getY(), GameBlockType.WALL);
+        System.out.println((int) event.getPosition().getX() + " " + (int) event.getPosition().getY() + ", ");
+
+//        //Fire a bullet
+//        EntityBullet bullet = new EntityBullet(world);
+//
+//        bullet.setPositionInternal(event.getPlayer().getPosition());
+//        bullet.setVelocityInternal(event.getPosition().subtract(event.getPlayer().getPosition()).normalize().multiply(0.5)
+//                .add(event.getPlayer().getVelocity()));
+//        bullet.setShouldDoMovementPrediction(true);
+//        bullet.joinWorld();
     }
 
     @EventSubscription
@@ -449,6 +463,29 @@ public class GameServer extends SecuredTCPServer {
 
     private List<Vector> mazeEndPoints = new ArrayList<>();
     private int mazeCounter = 0;
+//    private int heartCounter = 0;
+//    private int heartBlockCounter = 0;
+//
+//    private String[] heartBlocks = "5 7, 6 7, 7 7, 8 8, 9 9, 9 10, 10 8, 11 7, 12 7, 13 7, 14 8, 15 9, 15 10, 15 11, 4 12, 4 13, 5 14, 6 15, 7 16, 7 17, 8 18, 9 19, 10 18, 11 17, 11 16, 12 15, 13 14, 14 13, 14 12".split(", ");
+//
+//    public void tickHeart() {
+//        if(heartCounter++ % 4 == 0) {
+//            if(heartBlockCounter >= heartBlocks.length) {
+//                heartBlockCounter = 0;
+//            }
+//
+//            String[] s = heartBlocks[heartBlockCounter].split(" ");
+//            world.setBlockAt(Integer.parseInt(s[0]), Integer.parseInt(s[1]), GameBlockType.WALL);
+//
+//            int n = heartBlockCounter + 10;
+//            n %= heartBlocks.length;
+//
+//            s = heartBlocks[n].split(" ");
+//            world.setBlockAt(Integer.parseInt(s[0]), Integer.parseInt(s[1]), GameBlockType.AIR);
+//
+//            heartBlockCounter++;
+//        }
+//    }
 
     public void tickMaze() {
         if (mazeEndPoints.isEmpty()) {
@@ -532,16 +569,16 @@ public class GameServer extends SecuredTCPServer {
 
     public static void main(String[] args) throws InterruptedException {
 
-//        new Thread(() -> {
-//            try {
-//                System.out.println("##### THIS IS THE SERVER WINDOW #####");
-//                new GameServer(42070).start();
-//                System.exit(0);
-//            } catch (IOException | NoSuchPaddingException | NoSuchAlgorithmException e) {
-//                e.printStackTrace();
-//            }
-//        }, "Server Thread").start();
+        new Thread(() -> {
+            try {
+                System.out.println("##### THIS IS THE SERVER WINDOW #####");
+                new GameServer(42070).start();
+                System.exit(0);
+            } catch (IOException | NoSuchPaddingException | NoSuchAlgorithmException e) {
+                e.printStackTrace();
+            }
+        }, "Server Thread").start();
 
-        new GameClient();
+//        new GameClient();
     }
 }

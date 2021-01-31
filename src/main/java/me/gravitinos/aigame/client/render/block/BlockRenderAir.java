@@ -8,7 +8,9 @@ import java.awt.*;
 public class BlockRenderAir extends BlockRender {
     @Override
     public void draw(Graphics graphics, Vector position, double scaleFactor) {
-        graphics.setColor(Color.BLACK);
+        graphics.setColor(Color.DARK_GRAY);
         graphics.fillRect((int) position.getX(), (int) position.getY(), (int) scaleFactor, (int) scaleFactor);
+        graphics.setColor(Color.BLACK);
+        graphics.drawRect((int) position.getX(), (int) position.getY(), (int) scaleFactor, (int) scaleFactor);
     }
 }

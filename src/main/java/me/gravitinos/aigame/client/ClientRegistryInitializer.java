@@ -37,5 +37,6 @@ public class ClientRegistryInitializer {
         PacketHandlerClient.REGISTRY.put(PacketOutSpawnEntity.class, new PacketHandlerSpawnEntity());
         PacketHandlerClient.REGISTRY.put(PacketOutDestroyEntity.class, new PacketHandlerDestroyEntity());
         PacketHandlerClient.REGISTRY.put(PacketInOutPing.class, new PacketHandlerPing());
+        PacketHandlerClient.REGISTRY.put(PacketOutBlockChange.class, new PacketHandlerBlockChange());
     }
 }

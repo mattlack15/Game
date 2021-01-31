@@ -27,6 +27,10 @@ public class ClientWorld extends GameWorld {
         return new ArrayList<>(this.entityList.values());
     }
 
+    public Collection<GameEntity> entityCollection() {
+        return entityList.values();
+    }
+
     public GameEntity getEntity(UUID id) {
         return this.entityList.get(id);
     }

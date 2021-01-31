@@ -1,5 +1,6 @@
 package me.gravitinos.aigame.client.player;
 
+import me.gravitinos.aigame.client.GameClient;
 import me.gravitinos.aigame.client.PlayerCamera;
 import me.gravitinos.aigame.client.Renderable;
 import me.gravitinos.aigame.client.chat.ChatBox;
@@ -11,14 +12,19 @@ import me.gravitinos.aigame.common.util.Vector;
 
 import java.awt.*;
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 public class ClientPlayer extends EntityPlayer {
 
     private Inventory inventory = new Inventory(5);
     private ChatBox chatBox = new ChatBox();
 
+    public GameClient client;
+    public AtomicBoolean interact = new AtomicBoolean(false);
+
     public ClientPlayer(GameWorld world, UUID id, PlayerConnection connection) {
         super(world, id, connection);
+        this.setFrictionFactor(0.7);
     }
 
     @Override

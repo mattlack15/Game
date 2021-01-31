@@ -53,6 +53,11 @@ public abstract class GameEntity {
     private static Map<String, Class<? extends GameEntity>> REGISTRY_NAME = new ConcurrentHashMap<>();
     private static Map<Class<? extends GameEntity>, String> REGISTRY_CLASS = new ConcurrentHashMap<>();
 
+    /**
+     * Register an entity with the game
+     * @param name The formal name of the entity ex. "game.fire"
+     * @param clazz The class of the entity
+     */
     public static void registerEntity(String name, Class<? extends GameEntity> clazz) {
         REGISTRY_NAME.put(name, clazz);
         REGISTRY_CLASS.put(clazz, name);
@@ -85,6 +90,9 @@ public abstract class GameEntity {
         getDataWatcher().set(W_DO_MOVEMENT_PREDICTION, false, 0);
     }
 
+    /**
+     * Check for a collision at the position given
+     */
     protected boolean checkCollision(Vector pos, double multiplier) {
         int searchX = (int) Math.abs(this.velocity.getX() * multiplier) + 2;
         int searchY = (int) Math.abs(this.velocity.getY() * multiplier) + 2;
@@ -105,6 +113,9 @@ public abstract class GameEntity {
         return false;
     }
 
+    /**
+     * Get whether the client should perform movement prediction for this entity
+     */
     public boolean shouldDoMovementPrediction() {
         return getDataWatcher().get(W_DO_MOVEMENT_PREDICTION);
     }
@@ -113,6 +124,9 @@ public abstract class GameEntity {
         getDataWatcher().set(W_DO_MOVEMENT_PREDICTION, val);
     }
 
+    /**
+     * Updates position with velocity
+     */
     public synchronized void tick1(double multiplier) {
         if (!this.velocity.isZero()) {
             Vector newPos = this.position.add(this.velocity.multiply(multiplier));
@@ -120,6 +134,9 @@ public abstract class GameEntity {
         }
     }
 
+    /**
+     * Performs tick operations for the entity, ex. friction
+     */
     public synchronized void tick() {
         if (frictionFactor != 0) {
             if (!this.velocity.isZero()) {
@@ -135,7 +152,11 @@ public abstract class GameEntity {
         doTick();
     }
 
+    /**
+     * Called once per tick
+     */
     protected abstract void doTick();
+
 
     public synchronized void setFrictionFactor(double frictionFactor) {
         this.frictionFactor = frictionFactor;
@@ -147,26 +168,40 @@ public abstract class GameEntity {
         return this.hitbox;
     }
 
+    /**
+     * Set the velocity with a weak dirt level of 0
+     */
     public synchronized void setVelocityInternal(Vector velocity) {
         this.velocity = velocity;
         this.dataWatcher.setState(W_VELOCITY, velocity, 0);
     }
 
+    /**
+     * Set the velocity with a weak dirt level of 1
+     */
     public synchronized void setVelocity(Vector velocity) {
         this.velocity = velocity;
         this.dataWatcher.set(W_VELOCITY, velocity);
     }
 
+    /**
+     * Set the position with a weak dirt level of 0
+     */
     public synchronized void setPositionInternal(Vector position) {
         setPosition(position, 0);
         getDataWatcher().set(W_LAST_POSITION, position, 0);
     }
 
+    /**
+     * Set the position with a weak dirt level of 2
+     */
     public synchronized void setPosition(Vector position) {
         setPosition(position, 2);
     }
 
-
+    /**
+     * Set the position with the weak dirt level given
+     */
     public synchronized void setPosition(Vector position, int weakDirt) {
         if (getPosition() != null && getPosition().equals(position))
             return;
@@ -179,6 +214,9 @@ public abstract class GameEntity {
         this.position = position;
     }
 
+    /**
+     * Adds this entity to the world it is associated with
+     */
     public synchronized void joinWorld() {
         world.entityJoinWorld(this);
         dead = false;
@@ -197,6 +235,9 @@ public abstract class GameEntity {
                 world.getLoadedChunkAt(getChunkLocation().getX(), getChunkLocation().getY());
     }
 
+    /**
+     * Remove this entity from the world it is associated with
+     */
     public synchronized void remove() {
         world.entityLeaveWorld(this);
         dead = true;

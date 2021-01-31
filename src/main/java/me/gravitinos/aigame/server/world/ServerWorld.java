@@ -13,16 +13,26 @@ import me.gravitinos.aigame.common.packet.PacketOutSpawnPlayer;
 import me.gravitinos.aigame.common.util.SharedPalette;
 import me.gravitinos.aigame.server.player.ServerPlayer;
 
+import java.util.HashSet;
+
 public class ServerWorld extends GameWorld {
     private SharedPalette<String> entityPalette;
+    private HashSet<Chunk> updated = new HashSet<>(); //TODO add block-change packet functionality
     public ServerWorld(String name, SharedPalette<String> entityPalette) {
         super(name);
         this.entityPalette = entityPalette;
     }
 
     @Override
-    protected void initChunk(Chunk chunk) {
-        chunk.setBlock(0, 0, GameBlockType.WALL);
+    public synchronized void setBlockAt(int x, int y, GameBlock block) {
+        super.setBlockAt(x, y, block);
+        updated.add(getChunkAt(x >> 4, y >> 4));
+    }
+
+    public HashSet<Chunk> getAndClearUpdated() {
+        HashSet<Chunk> out = updated;
+        updated = new HashSet<>();
+        return out;
     }
 
     @Override
@@ -36,7 +46,13 @@ public class ServerWorld extends GameWorld {
     public synchronized void entityLeaveWorld(GameEntity entity) {
         super.entityLeaveWorld(entity);
         PacketOutDestroyEntity packet = new PacketOutDestroyEntity(entity.getId());
-        getPlayers().forEach(p -> p.getConnection().sendPacket(packet));
+        getPlayers().forEach(p -> {
+            try {
+                p.getConnection().sendPacket(packet);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        });
     }
 
     @Override

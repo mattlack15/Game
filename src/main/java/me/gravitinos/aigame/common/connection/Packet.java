@@ -33,6 +33,7 @@ public abstract class Packet {
         registerPacket(PacketOutDestroyEntity.class);
         registerPacket(PacketOutRemoteDisconnect.class);
         registerPacket(PacketOutTitle.class);
+        registerPacket(PacketOutBlockChange.class);
     }
 
     static void registerPacket(Class<? extends Packet> packetClass) {

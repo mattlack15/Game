@@ -51,12 +51,14 @@ public class GameWorld {
     }
 
     public void setBlockAt(double x, double y, GameBlock block) {
-        x = Math.floor(x);
-        y = Math.floor(y);
-        int cx = (int) x >> 4;
-        int cy = (int) y >> 4;
+        setBlockAt((int) x, (int) y, block);
+    }
+
+    public void setBlockAt(int x, int y, GameBlock block) {
+        int cx = x >> 4;
+        int cy = y >> 4;
         Chunk chunk = getChunkAt(cx, cy);
-        chunk.setBlock((int) x & 15, (int) y & 15, block);
+        chunk.setBlock(x & 15, y & 15, block);
     }
 
     public synchronized void unloadChunkAt(int cx, int cz) {

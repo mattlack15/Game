@@ -7,7 +7,7 @@ import java.awt.*;
 public class BlockRendererWall extends BlockRender {
     @Override
     public void draw(Graphics graphics, Vector position, double scaleFactor) {
-        graphics.setColor(Color.PINK);
+        graphics.setColor(new Color(0xC1043C));
         graphics.fillRect((int) position.getX(), (int) position.getY(), (int) scaleFactor, (int) scaleFactor);
     }
 }

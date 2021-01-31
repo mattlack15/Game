@@ -10,5 +10,10 @@ public interface PacketHandlerClient {
 
     Map<Class<? extends Packet>, PacketHandlerClient> REGISTRY = new HashMap<>();
 
+    /**
+     * Handle a packet
+     * @param packet The packet
+     * @param client The client
+     */
     void handlePacket(Packet packet, GameClient client);
 }

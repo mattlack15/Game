@@ -114,6 +114,8 @@ public class GameClient {
 
         player.checkCollisions = true;
 
+        player.client = this;
+
         player.joinWorld();
 
         player.setShouldDoMovementPrediction(true);
@@ -217,9 +219,7 @@ public class GameClient {
             public void mouseClicked(MouseEvent e) {
                 if (e.getButton() == MouseEvent.BUTTON1) {
                     if(camera != null) {
-                        Vector pos = new Vector(e.getX(), e.getY());
-                        pos = camera.fromScreenCoordinates(pos);
-                        player.getConnection().sendPacket(new PacketInPlayerInteract(pos.getX(), pos.getY()));
+                        player.interact.set(true);
                     }
                 }
             }
@@ -256,9 +256,10 @@ public class GameClient {
         long lastLoop = System.currentTimeMillis();
         int fpsCounter = 0;
         int tpsCounter = 0;
+        double m = 0;
+        boolean waitTillNextTick = false;
         long lastFpsCount = System.currentTimeMillis();
         while (true) {
-            long sinceLastLoop = System.currentTimeMillis() - lastLoop;
             if (System.currentTimeMillis() - lastFpsCount >= 1000) {
                 currentFPS = fpsCounter;
                 currentTPS = tpsCounter;
@@ -267,36 +268,48 @@ public class GameClient {
                 lastFpsCount = System.currentTimeMillis();
             }
             fpsCounter++;
+
+            long sinceLastLoop = System.currentTimeMillis() - lastLoop;
             lastLoop = System.currentTimeMillis();
+            double multiplier = sinceLastLoop / (1000D / TICKS_PER_SECOND);
+
+
+            boolean temp = false;
+            if(nextTickWait - (System.currentTimeMillis() - lastTick) < 5) {
+                multiplier = 1 - m;
+                if(!waitTillNextTick) {
+                    waitTillNextTick = true;
+                    temp = true;
+                }
+            }
+            m += multiplier;
+
+            double finalMultiplier = multiplier;
+            if(!waitTillNextTick || temp) {
+                world.entityCollection().forEach(e -> {
+                    if (e.shouldDoMovementPrediction())
+                        e.tick1(finalMultiplier);
+                });
+            }
+
+            updatePlayer(multiplier * 0.1);
 
             long ms = System.currentTimeMillis();
             if (ms - lastTick >= nextTickWait) {
                 tick();
                 tpsCounter++;
 
+                waitTillNextTick = false;
+
+                m = 0;
+
                 nextTickWait = (1000 / TICKS_PER_SECOND) - (Math.min((System.currentTimeMillis() - lastTick), 500) - nextTickWait);
                 lastTick = System.currentTimeMillis();
             }
 
-            double multiplier = sinceLastLoop / (1000D / TICKS_PER_SECOND);
-
-            world.getEntities().forEach(e -> {
-                if (e.shouldDoMovementPrediction())
-                    e.tick1(multiplier);
-            });
-
-            updatePlayer(multiplier * 0.1);
-
-            receivePackets();
-
-            long tick1Ms = System.currentTimeMillis();
-
             render();
-
-            tick1Ms = System.currentTimeMillis() - tick1Ms;
-            //System.out.println(tick1Ms);
             try {
-                Thread.sleep(0, 1000);
+                //Thread.sleep(0, 1000);
             } catch (Exception e) {
                 e.printStackTrace();
             }
