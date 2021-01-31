@@ -179,12 +179,13 @@ public class SharedPalette<T> {
      * multiple reads can happen concurrently, but not during a write
      */
     private void attainRead() {
-        reading.incrementAndGet();
-        while(writeThread.get() != null) {
-            reading.decrementAndGet();
+        reading.incrementAndGet(); //Notify others that we are trying to read
+        while(writeThread.get() != null) { //Check if there are any writers
+            reading.decrementAndGet(); //Mark that we are not actually proceeding with the read
             Thread.yield();
-            reading.incrementAndGet();
+            reading.incrementAndGet(); //Try again
         }
+        //No writers, proceed
     }
 
     private void releaseRead() {

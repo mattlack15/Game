@@ -28,7 +28,7 @@
                             <addClasspath>true</addClasspath>
                             <classpathPrefix>libs/</classpathPrefix>
                             <mainClass>
-                                me.gravitinos.aigame.server.GameServer
+                                me.gravitinos.aigame.Main
                             </mainClass>
                         </manifest>
                     </archive>

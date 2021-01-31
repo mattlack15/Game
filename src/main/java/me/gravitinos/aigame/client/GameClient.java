@@ -1,6 +1,7 @@
 package me.gravitinos.aigame.client;
 
 import lombok.Getter;
+import me.gravitinos.aigame.Main;
 import me.gravitinos.aigame.client.packet.PacketHandlerClient;
 import me.gravitinos.aigame.client.player.ClientPlayer;
 import me.gravitinos.aigame.client.player.PacketProviderPlayer;
@@ -69,9 +70,17 @@ public class GameClient {
                 return;
             }
             String ip = JOptionPane.showInputDialog(frame, "Enter the server's IP or localhost");
+            if(ip.equalsIgnoreCase("") || ip.equals("localhost")) {
+                Main.startServer();
+                try {
+                    Thread.sleep(20);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+            }
 
             try {
-                initWorld(name, ip, 6969);
+                initWorld(name, ip, 42070);
             } catch (Exception e) {
                 JOptionPane.showMessageDialog(frame, "Could not connect to server.");
                 continue;
@@ -87,7 +96,6 @@ public class GameClient {
 
     public void initWorld(String username, String remote, int remotePort) throws Exception {
         //remote = "192.168.2.173";
-        remotePort = 42070;
 
         SecuredTCPClient client;
         client = new SecuredTCPClient(remote, remotePort);
@@ -322,6 +330,12 @@ public class GameClient {
 
     int ibc = 0;
 
+    public String title = null;
+    public int titleFadeInTicks = 0;
+    public int titleFadeOutTicks = 0;
+    public int titleTicksLeft = 0;
+    public int titleColour = 0;
+
     private void _render(Graphics graphics) {
         long ms = System.currentTimeMillis();
 
@@ -414,6 +428,20 @@ public class GameClient {
 
         player.getChatBox().draw(graphics, frame.getWidth(), frame.getHeight());
 
+        if(title != null) {
+
+            graphics.setFont(new Font("", Font.BOLD, 56));
+
+            int titleWidth = graphics.getFontMetrics().stringWidth(title);
+            int titleHeight = graphics.getFontMetrics().getHeight();
+            int titleX = frame.getWidth() / 2 - titleWidth / 2;
+            int titleY = frame.getHeight() / 2 + titleHeight / 2;
+
+            Color color = new Color(titleColour, true);
+
+            graphics.setColor(color);
+            graphics.drawString(title, titleX, titleY);
+        }
         ms = System.currentTimeMillis() - ms;
 
     }
@@ -442,6 +470,33 @@ public class GameClient {
         world.tick();
 
         world.getEntities().forEach(GameEntity::tick);
+
+        if(title != null) {
+            int opacity = titleColour >>> 24;
+
+            if(opacity == 0 && titleTicksLeft == 0) {
+                title = null;
+            } else {
+                if (opacity != 255 && titleTicksLeft > 0) {
+                    if(titleFadeInTicks == 0) {
+                        titleFadeInTicks = 1;
+                    }
+                    opacity = Math.min(opacity + Math.max(255 / titleFadeInTicks, 1), 255);
+                    titleColour &= 0xFFFFFF;
+                    titleColour |= opacity << 24;
+                } else if (titleTicksLeft > 0) {
+                    titleTicksLeft--;
+                } else {
+                    if(titleFadeOutTicks == 0) {
+                        titleFadeOutTicks = 1;
+                    }
+                    opacity = Math.max(opacity - Math.max(255 / titleFadeOutTicks, 1), 0);
+                    titleColour &= 0xFFFFFF;
+                    titleColour |= opacity << 24;
+                }
+            }
+
+        }
 
         receivePackets();
 

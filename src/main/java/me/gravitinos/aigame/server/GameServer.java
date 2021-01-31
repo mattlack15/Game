@@ -386,6 +386,8 @@ public class GameServer extends SecuredTCPServer {
             player.sendMessage("BTW do /help for commands");
             player.sendMessage("And also you press T for chat");
 
+            player.sendTitle("Heeyyy! welcome!");
+
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -553,32 +555,5 @@ public class GameServer extends SecuredTCPServer {
             });
         }
 
-    }
-//
-//    public static void main(String[] args) throws IOException, InterruptedException {
-//        Console console = System.console();
-//        if (console == null && !GraphicsEnvironment.isHeadless()) {
-//            String filename = GameServer.class.getProtectionDomain().getCodeSource().getLocation().toString().substring(6);
-//            Runtime.getRuntime().exec(new String[]{"cmd", "/c", "start", "cmd", "/k", "java -jar \"" + filename + "\""});
-//        } else {
-//            main1(new String[0]);
-//            System.out.println("Program has ended, please type 'exit' to close the console");
-//        }
-//    }
-
-
-    public static void main(String[] args) throws InterruptedException {
-
-        new Thread(() -> {
-            try {
-                System.out.println("##### THIS IS THE SERVER WINDOW #####");
-                new GameServer(42070).start();
-                System.exit(0);
-            } catch (IOException | NoSuchPaddingException | NoSuchAlgorithmException e) {
-                e.printStackTrace();
-            }
-        }, "Server Thread").start();
-
-//        new GameClient();
     }
 }

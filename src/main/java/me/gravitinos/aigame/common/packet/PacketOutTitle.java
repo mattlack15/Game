@@ -7,7 +7,7 @@ public class PacketOutTitle extends Packet {
 
     public String message;
     public int fadeInTicks = 0;
-    public int displayTicks = 60;
+    public int displayTicks = 150;
     public int fadeOutTicks = 15;
 
     public PacketOutTitle(String message) {

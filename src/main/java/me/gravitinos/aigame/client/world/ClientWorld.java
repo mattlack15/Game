@@ -61,11 +61,10 @@ public class ClientWorld extends GameWorld {
         this.entityList.remove(entity.getId());
     }
 
-    @Override
+    @Override //Players are treated as entities
     public synchronized void playerJoinWorld(EntityPlayer player) {
         entityJoinWorld(player);
     }
-
     @Override
     public synchronized void playerLeaveWorld(EntityPlayer player) {
         entityLeaveWorld(player);

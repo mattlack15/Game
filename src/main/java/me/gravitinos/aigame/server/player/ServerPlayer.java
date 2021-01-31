@@ -7,6 +7,7 @@ import me.gravitinos.aigame.common.inventory.Inventory;
 import me.gravitinos.aigame.common.map.GameWorld;
 import me.gravitinos.aigame.common.packet.PacketInOutChatMessage;
 import me.gravitinos.aigame.common.packet.PacketOutRemoteDisconnect;
+import me.gravitinos.aigame.common.packet.PacketOutTitle;
 import me.gravitinos.aigame.common.util.Vector;
 import me.gravitinos.aigame.server.GameServer;
 
@@ -51,6 +52,14 @@ public class ServerPlayer extends EntityPlayer {
     public void sendMessage(String message) {
         PacketInOutChatMessage packet = new PacketInOutChatMessage(message);
         getConnection().sendPacket(packet);
+    }
+
+    public void sendTitle(String title, int fadeInTicks, int titleTicks, int fadeOutTicks) {
+        getConnection().sendPacket(new PacketOutTitle(title, fadeInTicks, titleTicks, fadeOutTicks));
+    }
+
+    public void sendTitle(String title) {
+        getConnection().sendPacket(new PacketOutTitle(title));
     }
 
     public void kick(String message, GameServer server) {
