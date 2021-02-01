@@ -7,12 +7,12 @@ import me.gravitinos.aigame.common.util.Vector;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicIntegerArray;
 
 public class Chunk {
     private List<GameEntity> entityList = new ArrayList<>();
-    private int[] blocks = new int[256];
+    private final AtomicIntegerArray blocks = new AtomicIntegerArray(new int[256]);
     @Getter
     private Vector position;
 
@@ -21,44 +21,46 @@ public class Chunk {
     }
 
     public boolean contains(Vector pos) {
-        return (int)Math.floor(pos.getX()) >> 4 == position.getX() && (int)Math.floor(pos.getY()) >> 4 == position.getY();
+        return (int) Math.floor(pos.getX()) >> 4 == position.getX() && (int) Math.floor(pos.getY()) >> 4 == position.getY();
     }
 
-    public synchronized void setBlock(int bx, int by, GameBlock block) {
+    public void setBlock(int bx, int by, GameBlock block) {
         int id = GameBlock.getId(block);
-        blocks[bx << 4 | by] = id;
+        blocks.set(bx << 4 | by, id);
     }
 
-    public synchronized void exportBlocks(int[] array) {
-        if(array.length < blocks.length)
-            throw new IllegalStateException("Array length must be >= chunk size (" + blocks.length + ")");
-        System.arraycopy(blocks, 0, array, 0, blocks.length);
-    }
-
-    public synchronized void exportBlocks(short[] array) {
-        for (int i = 0; i < blocks.length; i++) {
-            array[i] = (short) blocks[i];
+    public void exportBlocks(int[] array) {
+        for (int i = 0; i < blocks.length(); i++) {
+            array[i] = blocks.get(i);
         }
     }
 
-    public synchronized void setBlockIndex(int index, int block) {
-        blocks[index] = block;
+    public void exportBlocks(short[] array) {
+        for (int i = 0; i < blocks.length(); i++) {
+            array[i] = (short) blocks.get(i);
+        }
     }
 
-    public synchronized void importBlocks(int[] array) {
-        if(array.length > blocks.length)
-            throw new IllegalStateException("Array must be <= chunk size (" + blocks.length + ")");
-        System.arraycopy(array, 0, blocks, 0, blocks.length);
+    public void setBlockIndex(int index, int block) {
+        blocks.set(index, block);
     }
 
-    public synchronized GameBlock getBlock(int bx, int by) {
-        return GameBlock.getBlock(blocks[bx << 4 | by]);
+    public void importBlocks(int[] array) {
+        if (array.length > blocks.length())
+            throw new IllegalStateException("Array must be <= chunk size (" + blocks.length() + ")");
+        for (int i = 0; i < blocks.length(); i++) {
+            blocks.set(i, array[i]);
+        }
     }
 
-    public synchronized void setAll(GameBlock block) {
+    public GameBlock getBlock(int bx, int by) {
+        return GameBlock.getBlock(blocks.get(bx << 4 | by));
+    }
+
+    public void setAll(GameBlock block) {
         int id = GameBlock.getId(block);
-        for(int i = 0; i < 256; i++) {
-            blocks[i] = id;
+        for (int i = 0; i < 256; i++) {
+            blocks.set(i, id);
         }
     }
 

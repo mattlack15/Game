@@ -36,8 +36,6 @@ public class SharedPalette<T> {
     public void clear(int newSize) {
         attainWrite();
         try {
-            if (newSize % 2 == 0)
-                newSize++;
             hashToObject = (T[]) new Object[newSize];
             idToObject = (T[]) new Object[newSize];
             hashToId = new int[newSize];
@@ -103,6 +101,9 @@ public class SharedPalette<T> {
         }
     }
 
+    /**
+     * Get the id associated with a given object
+     */
     public int getId(T obj) {
         attainRead();
         try {

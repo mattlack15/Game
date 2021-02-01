@@ -11,7 +11,11 @@ public class PlayerConnection {
     }
 
     public synchronized void sendPacket(Packet packet) {
-        connection.sendPacket(packet);
+        try {
+            connection.sendPacket(packet);
+        } catch (Exception e) {
+            this.close();
+        }
     }
 
     public synchronized Packet nextPacket() {

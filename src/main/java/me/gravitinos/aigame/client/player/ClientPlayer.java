@@ -24,7 +24,7 @@ public class ClientPlayer extends EntityPlayer {
 
     public ClientPlayer(GameWorld world, UUID id, PlayerConnection connection) {
         super(world, id, connection);
-        this.setFrictionFactor(0.7);
+        this.setFrictionFactor(0.1);
     }
 
     @Override

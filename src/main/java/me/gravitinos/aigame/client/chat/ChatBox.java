@@ -57,7 +57,7 @@ public class ChatBox {
         int i = height - 50;
         graphics.setFont(new Font("chat", Font.PLAIN, 16));
 
-        if(isTyping()) {
+        if (isTyping()) {
             i += 32;
 
             graphics.setColor(new Color(Color.DARK_GRAY.getRGB() & 0xFFFFFF | (0x88 << 24), true));
@@ -70,20 +70,85 @@ public class ChatBox {
             i -= 32;
         }
 
-        int a = 0;
-        for(String s : lines) {
+        int maxLineWidth = 260;
 
-            if(++a > 3 && !isTyping())
+        List<String> adjustedLines = new ArrayList<>();
+
+        for (String line : lines) {
+
+            line = "&&FFFFFF" + line;
+
+            List<String> temp = new ArrayList<>();
+
+            //Split into lines that match max line width
+            StringBuilder builder = new StringBuilder();
+            String[] words = line.split(" ");
+            for (int j = 0; j < words.length; j++) {
+                if (graphics.getFontMetrics().stringWidth(builder + " " + words[j]) > maxLineWidth) {
+
+                    temp.add(builder.toString());
+                    builder = new StringBuilder(words[j]);
+                } else {
+                    if (j != 0) {
+                        builder.append(" ");
+                    }
+                    builder.append(words[j]);
+                }
+            }
+            if (builder.length() > 0) {
+                temp.add(builder.toString());
+            }
+
+            for (int j = temp.size() - 1; j >= 0; j--) {
+                adjustedLines.add(temp.get(j));
+                i -= graphics.getFont().getSize() + 4;
+            }
+            if (adjustedLines.size() >= 5 && !isTyping()) {
                 break;
+            }
+        }
+
+        int a = 0;
+        int colour = 0xFFFFFF;
+
+        for (int i1 = adjustedLines.size() - 1; i1 >= 0; i1--) {
+            String s = adjustedLines.get(i1);
 
             graphics.setColor(new Color(Color.DARK_GRAY.getRGB() & 0xFFFFFF | (0x88 << 24), true));
             graphics.fillRect(locX - 5, i - graphics.getFont().getSize(), WIDTH_PIXELS, graphics.getFont().getSize() + 4);
 
             graphics.setColor(Color.WHITE);
 
-            graphics.drawString(s, locX, i);
-            i -= graphics.getFont().getSize() + 4;
+            colour = renderColouredText(graphics, s, locX, i, colour, 255);
+
+            i += graphics.getFont().getSize() + 4;
 
         }
+    }
+
+    public static int renderColouredText(Graphics graphics, String s, int x, int y) {
+        return renderColouredText(graphics, s, x, y, 0xFFFFFF, 255);
+    }
+
+    public static int renderColouredText(Graphics graphics, String s, int x, int y, int startingColour, int opacity) {
+        int colour = startingColour | opacity << 24;
+
+        String[] parts = s.split("&&");
+
+        int xPos = x;
+        for (int j = 0; j < parts.length; j++) {
+            if (j != 0) {
+                try {
+                    colour = Integer.parseInt(parts[j].substring(0, 6), 16) | opacity << 24;
+                    parts[j] = parts[j].substring(6);
+                } catch (NumberFormatException | ArrayIndexOutOfBoundsException ignored) {
+                }
+            }
+            graphics.setColor(new Color(colour, true));
+            graphics.drawString(parts[j], xPos, y);
+            int w = graphics.getFontMetrics().stringWidth(parts[j]);
+            xPos += w;
+        }
+        return colour;
     }
 }

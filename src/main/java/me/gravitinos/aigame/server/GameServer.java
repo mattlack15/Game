@@ -31,6 +31,8 @@ import java.security.NoSuchAlgorithmException;
 import java.util.*;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicIntegerFieldUpdater;
+import java.util.concurrent.atomic.AtomicReference;
 
 public class GameServer extends SecuredTCPServer {
 
@@ -61,6 +63,7 @@ public class GameServer extends SecuredTCPServer {
         world = new ServerWorld("The World", entityPalette);
 
         mainLoop();
+        System.exit(0);
     }
 
     private void initRegistries() {
@@ -212,21 +215,10 @@ public class GameServer extends SecuredTCPServer {
         ((ServerWorld)world).getAndClearUpdated().forEach((c) -> {
             PacketOutMapChunk chunkPacket = new PacketOutMapChunk(c);
             world.getPlayers().forEach(p -> {
-               // if (((ServerPlayer) p).getChunkMap().isLoaded((int) c.getPosition().getX(), (int) c.getPosition().getY()))
+                if (((ServerPlayer) p).getChunkMap().isLoaded((int) c.getPosition().getX(), (int) c.getPosition().getY()))
                     p.getConnection().sendPacket(chunkPacket);
             });
         });
-    }
-
-    public void handleDisconnect(ServerPlayer player) {
-        if (world.getPlayer(player.getId()) != null) {
-            player.remove();
-            world.getPlayers().forEach(p -> ((ServerPlayer) p).sendMessage(player.getName() + " left the server."));
-        }
-        if (!player.getConnection().isClosed()) {
-            player.getConnection().close();
-            System.out.println("DISCONNECT: " + player.getName() + " disconnected.");
-        }
     }
 
     public String onChatMessage(ServerPlayer player, String message) {
@@ -350,6 +342,17 @@ public class GameServer extends SecuredTCPServer {
         }
     }
 
+    public void handleDisconnect(ServerPlayer player) {
+        if (world.getPlayer(player.getId()) != null) {
+            player.remove();
+            world.getPlayers().forEach(p -> ((ServerPlayer) p).sendMessage(player.getName() + " left the server."));
+            System.out.println("DISCONNECT: " + player.getName() + " disconnected.");
+        }
+        if (!player.getConnection().isClosed()) {
+            player.getConnection().close();
+        }
+    }
+
     @Override
     public void handleConnection(SecuredTCPConnection connection) {
         try {
@@ -362,8 +365,18 @@ public class GameServer extends SecuredTCPServer {
                 name = info.name + (i++);
             }
 
-            PlayerConnection playerConnection = new PlayerConnection(connection);
+            AtomicReference<ServerPlayer> playerAtomicReference = new AtomicReference<>();
+
+            PlayerConnection playerConnection = new PlayerConnection(connection) {
+                @Override
+                public void close() {
+                    super.close();
+                    handleDisconnect(playerAtomicReference.get());
+                }
+            };
+
             ServerPlayer player = new ServerPlayer(world, id, name, playerConnection);
+            playerAtomicReference.set(player);
             player.setPositionInternal(new Vector(2, 2));
 
             //Send position/velocity

@@ -2,12 +2,14 @@ package me.gravitinos.aigame.client;
 
 import lombok.Getter;
 import me.gravitinos.aigame.Main;
+import me.gravitinos.aigame.client.chat.ChatBox;
 import me.gravitinos.aigame.client.packet.PacketHandlerClient;
 import me.gravitinos.aigame.client.player.ClientPlayer;
 import me.gravitinos.aigame.client.player.PacketProviderPlayer;
 import me.gravitinos.aigame.client.render.block.BlockRender;
 import me.gravitinos.aigame.client.render.entity.EntityRender;
 import me.gravitinos.aigame.common.packet.*;
+import me.gravitinos.aigame.common.util.BlockVector;
 import me.gravitinos.aigame.common.util.SharedPalette;
 import me.gravitinos.aigame.client.world.ClientWorld;
 import me.gravitinos.aigame.common.RegistryInitializer;
@@ -342,12 +344,14 @@ public class GameClient {
         //Render blocks
         if(camera == null)
             return;
+
         camera.setWidth(PlayerCamera.scale(frame.getWidth(), camera.getScale()));
         camera.setHeight(PlayerCamera.scale(frame.getHeight(), camera.getScale()));
         double width = camera.scale(camera.getWidth());
         double height = camera.scale(camera.getHeight());
 
         //For all blocks on the screen
+
         double xMax = width + (camera.getScale() * PlayerCamera.BASE_SCALE_MULTIPLIER * 2);
         double yMax = height + (camera.getScale() * PlayerCamera.BASE_SCALE_MULTIPLIER * 2);
         for (int x = 0; x <= xMax; x += camera.getScale() * PlayerCamera.BASE_SCALE_MULTIPLIER) {
@@ -370,9 +374,7 @@ public class GameClient {
 
                 //Render
                 renderer.draw(graphics, screenPos, camera.getScale() * PlayerCamera.BASE_SCALE_MULTIPLIER);
-                y--;
             }
-            x--;
         }
 
         double num = width + camera.getScale() * PlayerCamera.BASE_SCALE_MULTIPLIER;
@@ -414,7 +416,6 @@ public class GameClient {
             x += PlayerCamera.scale(1.75D, 1D);
         }
 
-
         //Debug Info
         graphics.setColor(Color.WHITE);
         int sY = 30;
@@ -437,10 +438,7 @@ public class GameClient {
             int titleX = frame.getWidth() / 2 - titleWidth / 2;
             int titleY = frame.getHeight() / 2 + titleHeight / 2;
 
-            Color color = new Color(titleColour, true);
-
-            graphics.setColor(color);
-            graphics.drawString(title, titleX, titleY);
+            ChatBox.renderColouredText(graphics, title, titleX, titleY, 0xFFFFFF, titleColour >>> 24);
         }
         ms = System.currentTimeMillis() - ms;
 

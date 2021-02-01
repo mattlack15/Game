@@ -72,4 +72,12 @@ public class BlockVector {
         }
         return false;
     }
+
+    @Override
+    public String toString() {
+        return "BlockVector{" +
+                "x=" + x +
+                ", y=" + y +
+                '}';
+    }
 }

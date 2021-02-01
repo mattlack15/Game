@@ -29,7 +29,7 @@ public class ServerWorld extends GameWorld {
         updated.add(getChunkAt(x >> 4, y >> 4));
     }
 
-    public HashSet<Chunk> getAndClearUpdated() {
+    public synchronized HashSet<Chunk> getAndClearUpdated() {
         HashSet<Chunk> out = updated;
         updated = new HashSet<>();
         return out;

@@ -112,6 +112,10 @@ public class Vector implements GravSerializable {
         return new Vector(Math.abs(this.x), Math.abs(this.y));
     }
 
+    public BlockVector toBlockVector() {
+        return new BlockVector((int) this.x, (int) this.y);
+    }
+
     @Override
     public String toString() {
         return "{" + this.x + ", " + this.y + "}";
