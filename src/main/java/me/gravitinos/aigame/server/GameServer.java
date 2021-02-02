@@ -116,7 +116,6 @@ public class GameServer extends SecuredTCPServer {
         if (stopping.compareAndSet(false, true)) {
             System.out.println("Stopping server.");
 
-            //TODO send kick packets
             world.getPlayers().forEach(p -> ((ServerPlayer) p).kick("Stopping server.", this));
 
             //TODO save chunks
@@ -162,20 +161,32 @@ public class GameServer extends SecuredTCPServer {
         tickTiming = System.currentTimeMillis() - tickTiming;
     }
 
+    private void handlePacket(ServerPlayer player, Packet packet) {
+        PacketHandlerServer packetHandler = PacketHandlerServer.REGISTRY.get(packet.getClass());
+        if (packetHandler == null) {
+            System.out.println("Could not handle packet: " + packet.getClass());
+            return;
+        }
+        packetHandler.handlePacket(player, packet, this);
+    }
+
     private void receivePackets() {
         for (EntityPlayer player : world.getPlayers()) {
             try {
+                List<Packet> handleLater = new ArrayList<>();
                 while (!player.getConnection().isClosed() && player.getConnection().hasNextPacket()) {
                     Packet packet = player.getConnection().nextPacket();
                     if (packet == null)
                         continue;
-                    PacketHandlerServer packetHandler = PacketHandlerServer.REGISTRY.get(packet.getClass());
-                    if (packetHandler == null) {
-                        System.out.println("Could not handle packet: " + packet.getClass());
+
+                    if (packet instanceof PacketInOutChatMessage) {
+                        handleLater.add(packet);
                         continue;
                     }
-                    packetHandler.handlePacket((ServerPlayer) player, packet, this);
+
+                    handlePacket((ServerPlayer) player, packet);
                 }
+                handleLater.forEach(p -> handlePacket((ServerPlayer) player, p));
             } catch (Exception e) {
                 try {
                     ((ServerPlayer) player).kick("Error with packet handling", this);
@@ -212,7 +223,7 @@ public class GameServer extends SecuredTCPServer {
                 }
             }
         }
-        ((ServerWorld)world).getAndClearUpdated().forEach((c) -> {
+        ((ServerWorld) world).getAndClearUpdated().forEach((c) -> {
             PacketOutMapChunk chunkPacket = new PacketOutMapChunk(c);
             world.getPlayers().forEach(p -> {
                 if (((ServerPlayer) p).getChunkMap().isLoaded((int) c.getPosition().getX(), (int) c.getPosition().getY()))
@@ -399,7 +410,7 @@ public class GameServer extends SecuredTCPServer {
             player.sendMessage("BTW do /help for commands");
             player.sendMessage("And also you press T for chat");
 
-            player.sendTitle("Heeyyy! welcome!");
+            player.sendTitle("&&FF00EEWelcome!");
 
         } catch (Exception e) {
             e.printStackTrace();
@@ -411,7 +422,7 @@ public class GameServer extends SecuredTCPServer {
     @EventSubscription
     private void onInteract(PlayerInteractEvent event) {
 
-        world.setBlockAt((int) event.getPosition().getX(), (int) event.getPosition().getY(), GameBlockType.WALL);
+        //world.setBlockAt((int) event.getPosition().getX(), (int) event.getPosition().getY(), GameBlockType.WALL);
 
         //Fire a bullet
         EntityBullet bullet = new EntityBullet(world);
@@ -506,7 +517,7 @@ public class GameServer extends SecuredTCPServer {
             return;
         }
 
-        if (++mazeCounter % 8 != 0 || mazeCounter < 60)
+        if (++mazeCounter % 16 != 0 || mazeCounter < 60)
             return;
 
         List<Chunk> c = new ArrayList<>();

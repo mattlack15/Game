@@ -14,7 +14,7 @@ public class GameWorld {
     @Getter
     private String name;
 
-    private List<EntityPlayer> players = new ArrayList<>();
+    private Set<EntityPlayer> players = new HashSet<>();
 
     public GameWorld(String name) {
         this.name = name;
@@ -119,8 +119,7 @@ public class GameWorld {
     }
 
     public synchronized void playerJoinWorld(EntityPlayer player) {
-        if (!players.contains(player))
-            this.players.add(player);
+        this.players.add(player);
     }
 
     public synchronized void playerLeaveWorld(EntityPlayer player) {
@@ -133,7 +132,7 @@ public class GameWorld {
 
     public synchronized void entityLeaveWorld(GameEntity entity) {
         Chunk chunk = entity.getChunk();
-        if(chunk != null)
+        if (chunk != null)
             chunk.removeEntity(entity.getId());
     }
 
@@ -174,7 +173,7 @@ public class GameWorld {
 
     public synchronized EntityPlayer getPlayer(String name) {
         for (EntityPlayer player : getPlayers()) {
-            if(player.getName().equalsIgnoreCase(name)) {
+            if (player.getName().equalsIgnoreCase(name)) {
                 return player;
             }
         }

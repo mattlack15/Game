@@ -112,6 +112,7 @@ public class ChatBox {
         int colour = 0xFFFFFF;
 
         for (int i1 = adjustedLines.size() - 1; i1 >= 0; i1--) {
+            i += graphics.getFont().getSize() + 4;
             String s = adjustedLines.get(i1);
 
             graphics.setColor(new Color(Color.DARK_GRAY.getRGB() & 0xFFFFFF | (0x88 << 24), true));
@@ -121,7 +122,6 @@ public class ChatBox {
 
             colour = renderColouredText(graphics, s, locX, i, colour, 255);
 
-            i += graphics.getFont().getSize() + 4;
 
         }
     }
@@ -151,4 +151,22 @@ public class ChatBox {
         }
         return colour;
     }
+
+    public static String removeChatColours(String s) {
+        StringBuilder builder = new StringBuilder();
+        String[] parts = s.split("&&");
+        for (int i = 0; i < parts.length; i++) {
+            if(i == 0) {
+                builder.append(parts[i]);
+            } else {
+                if(parts[i].length() < 6) {
+                    builder.append(parts[i]);
+                    continue;
+                }
+                builder.append(parts[i].substring(6));
+            }
+        }
+        return builder.toString();
+    }
+
 }

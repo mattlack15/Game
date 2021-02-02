@@ -449,7 +449,7 @@ public class GameClient {
 
             graphics.setFont(new Font("", Font.BOLD, 56));
 
-            int titleWidth = graphics.getFontMetrics().stringWidth(title);
+            int titleWidth = graphics.getFontMetrics().stringWidth(ChatBox.removeChatColours(title));
             int titleHeight = graphics.getFontMetrics().getHeight();
             int titleX = frame.getWidth() / 2 - titleWidth / 2;
             int titleY = frame.getHeight() / 2 + titleHeight / 2;
