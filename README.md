@@ -6,3 +6,7 @@ It is multiplayer but you can play it as singleplayer by entering nothing or "lo
 There is a public server 104.243.38.82
 
 You can get a compiled jar from https://drive.google.com/file/d/1-3cqA8Pg-GbwguHYvayOYEDRziU66mYK/view?usp=sharing
+
+Commands:
+To type in chat press T or / and to get a list of commands type /help and enter.
+Really the only one that does anything interesting is /maze
