@@ -5,3 +5,4 @@ You are a square and the world is made out of squares, you can make minigames in
 It is multiplayer but you can play it as singleplayer by entering nothing or "localhost" as the ip.
 There is a public server 104.243.38.82
 
+You can get a compiled jar from https://drive.google.com/file/d/1-3cqA8Pg-GbwguHYvayOYEDRziU66mYK/view?usp=sharing
