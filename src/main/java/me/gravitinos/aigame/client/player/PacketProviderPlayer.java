@@ -30,7 +30,6 @@ public class PacketProviderPlayer extends PacketProvider<ClientPlayer> {
         if(player.interact.compareAndSet(true, false)) {
             Vector pos = new Vector(player.client.getMouseX(), player.client.getMouseY());
             pos = player.client.camera.fromScreenCoordinates(pos);
-            pos = player.getPosition();
             pos.floor();
             packets.self.add(new PacketInPlayerInteract(pos.getX(), pos.getY()));
         }

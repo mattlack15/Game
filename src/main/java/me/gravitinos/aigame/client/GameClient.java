@@ -33,6 +33,7 @@ import java.security.NoSuchAlgorithmException;
 import java.security.spec.InvalidKeySpecException;
 import java.util.*;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicIntegerFieldUpdater;
 
 public class GameClient {
 
@@ -354,11 +355,25 @@ public class GameClient {
 
         double xMax = width + (camera.getScale() * PlayerCamera.BASE_SCALE_MULTIPLIER * 2);
         double yMax = height + (camera.getScale() * PlayerCamera.BASE_SCALE_MULTIPLIER * 2);
+
+        Set<BlockVector> lastLayer = new HashSet<>((int) yMax);
+
         for (int x = 0; x <= xMax; x += camera.getScale() * PlayerCamera.BASE_SCALE_MULTIPLIER) {
+
+            Set<BlockVector> thisLayer = new HashSet<>((int) yMax);
+
             for (int y = 0; y <= yMax; y += camera.getScale() * PlayerCamera.BASE_SCALE_MULTIPLIER) {
 
                 //Get in-game position
                 Vector pos = camera.fromScreenCoordinates(new Vector(x, y)).floor();
+
+                BlockVector blockVector = pos.toBlockVector();
+                if(lastLayer.contains(blockVector))
+                    break;
+
+                if(!thisLayer.add(blockVector)) {
+                    continue;
+                }
 
                 //Get block
                 if (world.getLoadedChunkAt((int) pos.getX() >> 4, (int) pos.getY() >> 4) == null)
@@ -375,6 +390,8 @@ public class GameClient {
                 //Render
                 renderer.draw(graphics, screenPos, camera.getScale() * PlayerCamera.BASE_SCALE_MULTIPLIER);
             }
+
+            lastLayer = thisLayer;
         }
 
         double num = width + camera.getScale() * PlayerCamera.BASE_SCALE_MULTIPLIER;
@@ -382,7 +399,6 @@ public class GameClient {
         //Render entities
         for (GameEntity entity : world.getEntities()) {
             if (entity.getPosition().distanceSquared(camera.getPosition()) < num * num) {
-                //TODO
                 Class<?> clazz = entity.getClass();
                 if (entity instanceof ClientPlayer)
                     clazz = clazz.getSuperclass();
@@ -410,7 +426,7 @@ public class GameClient {
             if (itemStack != null) {
                 itemStack.getType().getDrawFunc().accept(new Vector(x + 11, y + 11), graphics, 0.75D);
                 graphics.setColor(Color.WHITE);
-                graphics.setFont(new Font("none", Font.BOLD, 16));
+                graphics.setFont(new Font("", Font.BOLD, 16));
                 graphics.drawString(Integer.toString(itemStack.getAmount()), (int) Math.round(x + PlayerCamera.scale(0.82D, 1D)), (int) Math.round(y + PlayerCamera.scale(1.25D, 1D)));
             }
             x += PlayerCamera.scale(1.75D, 1D);
@@ -526,11 +542,7 @@ public class GameClient {
             if (pressedKeys.contains(KeyEvent.VK_W)) {
                 posAdd = posAdd.add(new Vector(0, -1));
             }
-            if (pressedKeys.contains(KeyEvent.VK_C)) {
-                player.checkCollisions = false;
-            } else {
-                player.checkCollisions = true;
-            }
+            player.checkCollisions = !pressedKeys.contains(KeyEvent.VK_C);
             if (posAdd.abs().sum() != 0D) {
                 Vector dVel = posAdd.multiply(Math.sqrt(speed * speed / posAdd.abs().sum()));
                 player.setVelocity(player.getVelocity().add(dVel));
@@ -565,8 +577,6 @@ public class GameClient {
         }
         camera.setPosition(player.getPosition());
     }
-
-    private static int a = 1;
 
     public static void main(String[] args) throws NoSuchFieldException, IllegalAccessException {
         new GameClient();

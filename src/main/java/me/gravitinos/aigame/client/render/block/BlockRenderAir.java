@@ -11,8 +11,7 @@ public class BlockRenderAir extends BlockRender {
         graphics.setColor(Color.DARK_GRAY);
         graphics.fillRect((int) position.getX(), (int) position.getY(), (int) scaleFactor, (int) scaleFactor);
         graphics.setColor(Color.BLACK);
-        graphics.drawLine((int) position.getX(), (int) position.getY(), (int) position.getX() + (int) scaleFactor, (int) position.getY());
-        graphics.drawLine((int) position.getX(), (int) position.getY(), (int) position.getX(), (int) position.getY() + (int) position.getY());
+        graphics.drawRect((int) position.getX(), (int) position.getY(), (int) scaleFactor, (int) scaleFactor);
 
     }
 }

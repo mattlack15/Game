@@ -412,16 +412,15 @@ public class GameServer extends SecuredTCPServer {
     private void onInteract(PlayerInteractEvent event) {
 
         world.setBlockAt((int) event.getPosition().getX(), (int) event.getPosition().getY(), GameBlockType.WALL);
-        System.out.println((int) event.getPosition().getX() + " " + (int) event.getPosition().getY() + ", ");
 
-//        //Fire a bullet
-//        EntityBullet bullet = new EntityBullet(world);
-//
-//        bullet.setPositionInternal(event.getPlayer().getPosition());
-//        bullet.setVelocityInternal(event.getPosition().subtract(event.getPlayer().getPosition()).normalize().multiply(0.5)
-//                .add(event.getPlayer().getVelocity()));
-//        bullet.setShouldDoMovementPrediction(true);
-//        bullet.joinWorld();
+        //Fire a bullet
+        EntityBullet bullet = new EntityBullet(world);
+
+        bullet.setPositionInternal(event.getPlayer().getPosition());
+        bullet.setVelocityInternal(event.getPosition().subtract(event.getPlayer().getPosition()).normalize().multiply(0.5)
+                .add(event.getPlayer().getVelocity()));
+        bullet.setShouldDoMovementPrediction(true);
+        bullet.joinWorld();
     }
 
     @EventSubscription
