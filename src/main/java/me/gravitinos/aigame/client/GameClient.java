@@ -8,6 +8,8 @@ import me.gravitinos.aigame.client.player.ClientPlayer;
 import me.gravitinos.aigame.client.player.PacketProviderPlayer;
 import me.gravitinos.aigame.client.render.block.BlockRender;
 import me.gravitinos.aigame.client.render.entity.EntityRender;
+import me.gravitinos.aigame.client.voice.AudioProvider;
+import me.gravitinos.aigame.client.voice.VoiceProvider;
 import me.gravitinos.aigame.common.packet.*;
 import me.gravitinos.aigame.common.util.BlockVector;
 import me.gravitinos.aigame.common.util.SharedPalette;
@@ -21,19 +23,12 @@ import me.gravitinos.aigame.common.entity.*;
 import me.gravitinos.aigame.common.item.ItemStack;
 import me.gravitinos.aigame.common.util.Vector;
 
-import javax.crypto.NoSuchPaddingException;
-import javax.sound.sampled.AudioSystem;
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.*;
 import java.awt.image.BufferedImage;
-import java.io.IOException;
-import java.security.InvalidKeyException;
-import java.security.NoSuchAlgorithmException;
-import java.security.spec.InvalidKeySpecException;
 import java.util.*;
 import java.util.List;
-import java.util.concurrent.atomic.AtomicIntegerFieldUpdater;
 
 public class GameClient {
 
@@ -61,6 +56,8 @@ public class GameClient {
     public ClientPlayer player;
     public SharedPalette<GameBlock> blockPalette = new SharedPalette<>();
     public SharedPalette<String> entityPalette = new SharedPalette<>();
+    public VoiceProvider voiceProvider = new VoiceProvider();
+    public AudioProvider audioProvider = new AudioProvider();
 
     public void mainMenu() {
         while (true) {
@@ -68,12 +65,18 @@ public class GameClient {
             frame.getGraphics().fillRect(0, 0, frame.getWidth(), frame.getHeight());
 
             String name = JOptionPane.showInputDialog(frame, "Enter your username, (Or EXIT to close)");
-            if(name.equalsIgnoreCase("exit")) {
+            if (name == null) {
+                System.exit(0);
+            }
+            if (name.equalsIgnoreCase("exit")) {
                 frame.dispose();
                 return;
             }
-            String ip = JOptionPane.showInputDialog(frame, "Enter the server's IP or localhost");
-            if(ip.equalsIgnoreCase("") || ip.equals("localhost")) {
+
+            String ip;
+            while ((ip = JOptionPane.showInputDialog(frame, "Enter the server's IP or localhost")) == null) ;
+
+            if (ip.equalsIgnoreCase("") || ip.equals("localhost")) {
                 Main.startServer();
                 try {
                     Thread.sleep(20);
@@ -187,7 +190,7 @@ public class GameClient {
                             player.getChatBox().give.set(true);
                             player.getChatBox().setTyping(true);
                             pressedKeys.clear();
-                            if(e.getKeyCode() == KeyEvent.VK_SLASH) {
+                            if (e.getKeyCode() == KeyEvent.VK_SLASH) {
                                 player.getChatBox().addChar('/');
                             }
                         }
@@ -229,7 +232,7 @@ public class GameClient {
             @Override
             public void mouseClicked(MouseEvent e) {
                 if (e.getButton() == MouseEvent.BUTTON1) {
-                    if(camera != null) {
+                    if (camera != null) {
                         player.interact.set(true);
                     }
                 }
@@ -286,9 +289,9 @@ public class GameClient {
 
 
             boolean temp = false;
-            if(nextTickWait - (System.currentTimeMillis() - lastTick) < 5) {
+            if (nextTickWait - (System.currentTimeMillis() - lastTick) < 5) {
                 multiplier = 1 - m;
-                if(!waitTillNextTick) {
+                if (!waitTillNextTick) {
                     waitTillNextTick = true;
                     temp = true;
                 }
@@ -296,7 +299,7 @@ public class GameClient {
             m += multiplier;
 
             double finalMultiplier = multiplier;
-            if(!waitTillNextTick || temp) {
+            if (!waitTillNextTick || temp) {
                 world.entityCollection().forEach(e -> {
                     if (e.shouldDoMovementPrediction())
                         e.tick1(finalMultiplier);
@@ -343,7 +346,7 @@ public class GameClient {
         long ms = System.currentTimeMillis();
 
         //Render blocks
-        if(camera == null)
+        if (camera == null)
             return;
 
         camera.setWidth(PlayerCamera.scale(frame.getWidth(), camera.getScale()));
@@ -361,6 +364,7 @@ public class GameClient {
         for (int x = 0; x <= xMax; x += camera.getScale() * PlayerCamera.BASE_SCALE_MULTIPLIER) {
 
             Set<BlockVector> thisLayer = new HashSet<>((int) yMax);
+            BlockVector bPos = camera.fromScreenCoordinates(new Vector(0, 0)).toBlockVector();
 
             for (int y = 0; y <= yMax; y += camera.getScale() * PlayerCamera.BASE_SCALE_MULTIPLIER) {
 
@@ -368,10 +372,10 @@ public class GameClient {
                 Vector pos = camera.fromScreenCoordinates(new Vector(x, y)).floor();
 
                 BlockVector blockVector = pos.toBlockVector();
-                if(lastLayer.contains(blockVector))
+                if (lastLayer.contains(blockVector))
                     break;
 
-                if(!thisLayer.add(blockVector)) {
+                if (!thisLayer.add(blockVector)) {
                     continue;
                 }
 
@@ -388,7 +392,7 @@ public class GameClient {
                 Vector screenPos = camera.toScreenCoordinates(pos);
 
                 //Render
-                renderer.draw(graphics, screenPos, camera.getScale() * PlayerCamera.BASE_SCALE_MULTIPLIER);
+                renderer.draw(graphics, screenPos.toBlockVector(), camera.getScale() * PlayerCamera.BASE_SCALE_MULTIPLIER);
             }
 
             lastLayer = thisLayer;
@@ -397,7 +401,7 @@ public class GameClient {
         double num = width + camera.getScale() * PlayerCamera.BASE_SCALE_MULTIPLIER;
 
         //Render entities
-        for (GameEntity entity : world.getEntities()) {
+        for (GameEntity entity : world.entityCollection()) {
             if (entity.getPosition().distanceSquared(camera.getPosition()) < num * num) {
                 Class<?> clazz = entity.getClass();
                 if (entity instanceof ClientPlayer)
@@ -445,7 +449,7 @@ public class GameClient {
 
         player.getChatBox().draw(graphics, frame.getWidth(), frame.getHeight());
 
-        if(title != null) {
+        if (title != null) {
 
             graphics.setFont(new Font("", Font.BOLD, 56));
 
@@ -460,6 +464,23 @@ public class GameClient {
 
     }
 
+    private void sendPackets() {
+
+        //Game Packets
+        PacketProviderPlayer packetProviderPlayer = new PacketProviderPlayer();
+        List<Packet> packets = packetProviderPlayer.getPackets(player, player.getDataWatcher()).self;
+        if (player.getConnection().isClosed())
+            throw new IllegalStateException("Disconnected!");
+        packets.forEach((p) -> player.getConnection().sendPacket(p));
+
+        //Voice packets
+        if (voiceProvider.isEnabled() && voiceProvider.isActive()) {
+            Packet packet = voiceProvider.getPacket();
+            if (packet != null)
+                player.getConnection().sendPacket(packet);
+        }
+    }
+
     private void receivePackets() {
         //Receive packets
         List<Packet> received = new ArrayList<>();
@@ -468,7 +489,7 @@ public class GameClient {
         }
 
         for (Packet packet : received) {
-            if(packet instanceof PacketOutRemoteDisconnect) {
+            if (packet instanceof PacketOutRemoteDisconnect) {
                 throw new IllegalStateException(((PacketOutRemoteDisconnect) packet).reason);
             }
             PacketHandlerClient handler = PacketHandlerClient.REGISTRY.get(packet.getClass());
@@ -485,14 +506,14 @@ public class GameClient {
 
         world.getEntities().forEach(GameEntity::tick);
 
-        if(title != null) {
+        if (title != null) {
             int opacity = titleColour >>> 24;
 
-            if(opacity == 0 && titleTicksLeft == 0) {
+            if (opacity == 0 && titleTicksLeft == 0) {
                 title = null;
             } else {
                 if (opacity != 255 && titleTicksLeft > 0) {
-                    if(titleFadeInTicks == 0) {
+                    if (titleFadeInTicks == 0) {
                         titleFadeInTicks = 1;
                     }
                     opacity = Math.min(opacity + Math.max(255 / titleFadeInTicks, 1), 255);
@@ -501,7 +522,7 @@ public class GameClient {
                 } else if (titleTicksLeft > 0) {
                     titleTicksLeft--;
                 } else {
-                    if(titleFadeOutTicks == 0) {
+                    if (titleFadeOutTicks == 0) {
                         titleFadeOutTicks = 1;
                     }
                     opacity = Math.max(opacity - Math.max(255 / titleFadeOutTicks, 1), 0);
@@ -512,14 +533,10 @@ public class GameClient {
 
         }
 
-        receivePackets();
+        audioProvider.tick();
 
-        //Send packets
-        PacketProviderPlayer packetProviderPlayer = new PacketProviderPlayer();
-        List<Packet> packets = packetProviderPlayer.getPackets(player, player.getDataWatcher()).self;
-        if(player.getConnection().isClosed())
-            throw new IllegalStateException("Disconnected!");
-        packets.forEach((p) -> player.getConnection().sendPacket(p));
+        receivePackets();
+        sendPackets();
 
     }
 
@@ -573,6 +590,17 @@ public class GameClient {
             }
             if (pressedKeys.contains(KeyEvent.VK_X)) {
                 camera.setScale(camera.getScale() + 0.02);
+            }
+            if (voiceProvider.isEnabled()) {
+                if (pressedKeys.contains(KeyEvent.VK_V)) {
+                    if (!voiceProvider.isActive()) {
+                        voiceProvider.start();
+                    }
+                } else {
+                    if (voiceProvider.isActive()) {
+                        voiceProvider.stop();
+                    }
+                }
             }
         }
         camera.setPosition(player.getPosition());

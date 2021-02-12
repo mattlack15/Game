@@ -18,6 +18,7 @@ public abstract class Packet {
 
         registerPacket(PacketInOutChatMessage.class);
         registerPacket(PacketInOutPing.class);
+        registerPacket(PacketInOutAudio.class);
 
         registerPacket(PacketInPlayerInfo.class);
         registerPacket(PacketInPlayerMove.class);
@@ -37,7 +38,7 @@ public abstract class Packet {
     }
 
     static void registerPacket(Class<? extends Packet> packetClass) {
-        int id = idCounter.getAndIncrement();
+        int id = idCounter.getAndIncrement(); //TODO packet palette instead of this
         idMap.put(id, packetClass);
         packetMap.put(packetClass, id);
     }

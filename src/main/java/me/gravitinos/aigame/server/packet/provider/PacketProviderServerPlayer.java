@@ -1,6 +1,5 @@
 package me.gravitinos.aigame.server.packet.provider;
 
-import me.gravitinos.aigame.common.connection.Packet;
 import me.gravitinos.aigame.common.datawatcher.DataWatcher;
 import me.gravitinos.aigame.common.datawatcher.PacketPackage;
 import me.gravitinos.aigame.common.datawatcher.PacketProvider;
@@ -11,9 +10,6 @@ import me.gravitinos.aigame.common.packet.PacketOutMapChunk;
 import me.gravitinos.aigame.common.util.Vector;
 import me.gravitinos.aigame.server.player.PlayerChunkMap;
 import me.gravitinos.aigame.server.player.ServerPlayer;
-
-import java.util.ArrayList;
-import java.util.List;
 
 public class PacketProviderServerPlayer extends PacketProvider<ServerPlayer> {
     @Override

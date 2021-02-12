@@ -39,5 +39,6 @@ public class ClientRegistryInitializer {
         PacketHandlerClient.REGISTRY.put(PacketInOutPing.class, new PacketHandlerPing());
         PacketHandlerClient.REGISTRY.put(PacketOutBlockChange.class, new PacketHandlerBlockChange());
         PacketHandlerClient.REGISTRY.put(PacketOutTitle.class, new PacketHandlerTitle());
+        PacketHandlerClient.REGISTRY.put(PacketInOutAudio.class, new PacketHandlerAudio());
     }
 }

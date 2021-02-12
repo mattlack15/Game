@@ -1,6 +1,5 @@
 package me.gravitinos.aigame.server;
 
-import me.gravitinos.aigame.client.GameClient;
 import me.gravitinos.aigame.common.RegistryInitializer;
 import me.gravitinos.aigame.common.blocks.GameBlock;
 import me.gravitinos.aigame.common.blocks.GameBlockType;
@@ -11,15 +10,15 @@ import me.gravitinos.aigame.common.connection.SecuredTCPServer;
 import me.gravitinos.aigame.common.datawatcher.PacketPackage;
 import me.gravitinos.aigame.common.entity.*;
 import me.gravitinos.aigame.common.map.Chunk;
-import me.gravitinos.aigame.common.map.GameWorld;
 import me.gravitinos.aigame.common.packet.*;
 import me.gravitinos.aigame.common.util.SharedPalette;
 import me.gravitinos.aigame.common.util.Vector;
+import me.gravitinos.aigame.server.command.Command;
+import me.gravitinos.aigame.server.command.CommandRegistry;
 import me.gravitinos.aigame.server.event.EventSubscriptions;
 import me.gravitinos.aigame.server.event.EventSubscription;
 import me.gravitinos.aigame.server.event.events.PlayerInteractEvent;
 import me.gravitinos.aigame.server.event.events.PlayerMoveEvent;
-import me.gravitinos.aigame.server.minigame.MazeGenerator;
 import me.gravitinos.aigame.server.packet.handler.*;
 import me.gravitinos.aigame.server.packet.provider.PacketProviderServerPlayer;
 import me.gravitinos.aigame.server.player.ServerPlayer;
@@ -31,13 +30,19 @@ import java.security.NoSuchAlgorithmException;
 import java.util.*;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicIntegerFieldUpdater;
 import java.util.concurrent.atomic.AtomicReference;
 
 public class GameServer extends SecuredTCPServer {
 
-    public GameWorld world;
+    public ServerWorld world;
     public SharedPalette<String> entityPalette = new SharedPalette<>();
+
+    private static GameServer instance;
+
+    public static GameServer getServer() {
+        return instance;
+    }
+
 
     public GameServer(int port) {
         super(port);
@@ -46,6 +51,8 @@ public class GameServer extends SecuredTCPServer {
     @Override
     public void start() throws IOException, NoSuchAlgorithmException, NoSuchPaddingException {
         super.start();
+
+        instance = this;
 
         System.out.println("Starting server on " + this.getPort());
 
@@ -74,6 +81,7 @@ public class GameServer extends SecuredTCPServer {
         PacketHandlerServer.REGISTRY.put(PacketInDisconnect.class, new PacketHandlerDisconnect());
         PacketHandlerServer.REGISTRY.put(PacketInOutPing.class, new PacketHandlerPing());
         PacketHandlerServer.REGISTRY.put(PacketInPlayerInteract.class, new PacketHandlerPlayerInteract());
+        PacketHandlerServer.REGISTRY.put(PacketInOutAudio.class, new PacketHandlerVoice());
     }
 
     private AtomicBoolean stopping = new AtomicBoolean(false);
@@ -145,7 +153,7 @@ public class GameServer extends SecuredTCPServer {
 
         //Tick entities
         this.world.getEntities().forEach(((e) -> {
-            if (!(e instanceof EntityPlayer))
+            if (!(e instanceof me.gravitinos.aigame.common.entity.EntityPlayer))
                 e.tick1(1D);
             e.tick();
         }));
@@ -155,8 +163,6 @@ public class GameServer extends SecuredTCPServer {
 
         //Send packets
         sendPackets();
-
-        tickMaze();
 
         tickTiming = System.currentTimeMillis() - tickTiming;
     }
@@ -171,7 +177,7 @@ public class GameServer extends SecuredTCPServer {
     }
 
     private void receivePackets() {
-        for (EntityPlayer player : world.getPlayers()) {
+        for (me.gravitinos.aigame.common.entity.EntityPlayer player : world.getPlayers()) {
             try {
                 List<Packet> handleLater = new ArrayList<>();
                 while (!player.getConnection().isClosed() && player.getConnection().hasNextPacket()) {
@@ -199,7 +205,7 @@ public class GameServer extends SecuredTCPServer {
     }
 
     private void sendPackets() {
-        for (EntityPlayer player : world.getPlayers()) {
+        for (me.gravitinos.aigame.common.entity.EntityPlayer player : world.getPlayers()) {
             PacketPackage packets = new PacketProviderServerPlayer().getPackets((ServerPlayer) player, player.getDataWatcher());
             try {
                 for (Packet packet : packets.self) {
@@ -210,7 +216,7 @@ public class GameServer extends SecuredTCPServer {
                 break;
             }
             for (Packet packet : packets.other) {
-                for (EntityPlayer worldPlayer : world.getPlayers()) {
+                for (me.gravitinos.aigame.common.entity.EntityPlayer worldPlayer : world.getPlayers()) {
                     try {
                         if (!worldPlayer.getId().equals(player.getId())) {
                             if (worldPlayer.getConnection().isClosed())
@@ -267,7 +273,7 @@ public class GameServer extends SecuredTCPServer {
                 return;
             }
             ServerPlayer to = null;
-            for (EntityPlayer worldPlayer : world.getPlayers()) {
+            for (me.gravitinos.aigame.common.entity.EntityPlayer worldPlayer : world.getPlayers()) {
                 if (worldPlayer.getName().equalsIgnoreCase(args[0])) {
                     to = (ServerPlayer) worldPlayer;
                     break;
@@ -324,19 +330,6 @@ public class GameServer extends SecuredTCPServer {
             } else {
                 player.setPosition(pos1.add(-1, -1));
             }
-        } else if (cmd.equalsIgnoreCase("maze")) {
-            long ms = System.currentTimeMillis();
-            int[][] maze = MazeGenerator.generate(41);
-            long genMs = System.currentTimeMillis() - ms;
-            MazeGenerator.placeMaze(maze, this, -60, -60);
-            for (EntityPlayer worldPlayer : world.getPlayers()) {
-                worldPlayer.setPosition(new Vector(-58.9, -58.9));
-            }
-            mazeEndPoints.clear();
-            mazeCounter = 0;
-            mazeEndPoints.add(new Vector(-59, -59));
-            ms = System.currentTimeMillis() - ms;
-            player.sendMessage("Created a 41x41 maze in " + ms + "ms. (gen " + genMs + "ms)");
         } else if (cmd.equalsIgnoreCase("kick")) {
             if (args.length < 1) {
                 player.sendMessage("Player name needed!");
@@ -350,6 +343,17 @@ public class GameServer extends SecuredTCPServer {
             }
             player.sendMessage("You kicked " + player1.getName() + " from the server.");
             player1.kick("You were kicked from the server by " + player.getName() + ".", this);
+        } else {
+            try {
+                Command command = CommandRegistry.DEFAULT_REGISTRY.get(cmd);
+                if (command != null) {
+                    command.handle(player, args);
+                } else {
+                    player.sendMessage("&&FF0000Command not found!");
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
         }
     }
 
@@ -485,9 +489,6 @@ public class GameServer extends SecuredTCPServer {
         }
         event.setCancelled(!result);
     }
-
-    private List<Vector> mazeEndPoints = new ArrayList<>();
-    private int mazeCounter = 0;
 //    private int heartCounter = 0;
 //    private int heartBlockCounter = 0;
 //
@@ -512,71 +513,4 @@ public class GameServer extends SecuredTCPServer {
 //        }
 //    }
 
-    public void tickMaze() {
-        if (mazeEndPoints.isEmpty()) {
-            return;
-        }
-
-        if (++mazeCounter % 16 != 0 || mazeCounter < 60)
-            return;
-
-        List<Chunk> c = new ArrayList<>();
-
-        while (mazeEndPoints.size() > 10)
-            mazeEndPoints.remove(0);
-
-        for (Vector mazeEndPoint : new ArrayList<>(mazeEndPoints)) {
-            Vector v = mazeEndPoint.add(new Vector(0, 1));
-            if (world.getBlockAt(v) == GameBlockType.AIR) {
-                world.setBlockAt(v, GameBlockType.LIGHT_GREEN);
-                Chunk chunk = world.getChunkAt((int) v.getX() >> 4, (int) v.getY() >> 4);
-                if (!c.contains(chunk)) {
-                    c.add(chunk);
-                }
-                mazeEndPoints.add(v);
-            }
-
-            v = mazeEndPoint.add(new Vector(1, 0));
-            if (world.getBlockAt(v) == GameBlockType.AIR) {
-                Chunk chunk = world.getChunkAt((int) v.getX() >> 4, (int) v.getY() >> 4);
-                if (!c.contains(chunk)) {
-                    c.add(chunk);
-                }
-                world.setBlockAt(v, GameBlockType.LIGHT_GREEN);
-                mazeEndPoints.add(v);
-            }
-
-            v = mazeEndPoint.add(new Vector(0, -1));
-            if (world.getBlockAt(v) == GameBlockType.AIR) {
-                world.setBlockAt(v, GameBlockType.LIGHT_GREEN);
-                Chunk chunk = world.getChunkAt((int) v.getX() >> 4, (int) v.getY() >> 4);
-                if (!c.contains(chunk)) {
-                    c.add(chunk);
-                }
-                mazeEndPoints.add(v);
-            }
-
-            v = mazeEndPoint.add(new Vector(-1, 0));
-            if (world.getBlockAt(v) == GameBlockType.AIR) {
-                world.setBlockAt(v, GameBlockType.LIGHT_GREEN);
-                Chunk chunk = world.getChunkAt((int) v.getX() >> 4, (int) v.getY() >> 4);
-                if (!c.contains(chunk)) {
-                    c.add(chunk);
-                }
-                mazeEndPoints.add(v);
-            }
-
-            mazeEndPoints.remove(mazeEndPoint);
-
-
-        }
-        for (Chunk chunk : c) {
-            PacketOutMapChunk mapChunk = new PacketOutMapChunk(chunk);
-            world.getPlayers().forEach(p -> {
-                if (((ServerPlayer) p).getChunkMap().isLoaded((int) chunk.getPosition().getX(), (int) chunk.getPosition().getY()))
-                    p.getConnection().sendPacket(mapChunk);
-            });
-        }
-
-    }
 }

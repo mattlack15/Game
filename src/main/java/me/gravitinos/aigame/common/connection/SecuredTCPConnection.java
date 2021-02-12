@@ -107,7 +107,7 @@ public class SecuredTCPConnection implements AutoCloseable {
                 try {
                     int bufferDataEnd = bufferLength.get();
                     int maxReadLength = buffer.length - bufferDataEnd;
-                    n = socket.getInputStream().read(buffer, bufferDataEnd, block ? maxReadLength : Math.min(socket.getInputStream().available(), maxReadLength));
+                    n = socket.getInputStream().read(buffer, bufferDataEnd, block ? maxReadLength : Math.min(available, maxReadLength));
                 } catch (IndexOutOfBoundsException e) {
                     System.out.println("buffer size: " + buffer.length + " bufferLength: " + bufferLength.get() + " left: " + left() + " avail: " + available);
                     throw e;

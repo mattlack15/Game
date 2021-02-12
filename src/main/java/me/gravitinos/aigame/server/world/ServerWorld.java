@@ -1,7 +1,6 @@
 package me.gravitinos.aigame.server.world;
 
 import me.gravitinos.aigame.common.blocks.GameBlock;
-import me.gravitinos.aigame.common.blocks.GameBlockType;
 import me.gravitinos.aigame.common.connection.Packet;
 import me.gravitinos.aigame.common.entity.EntityPlayer;
 import me.gravitinos.aigame.common.entity.GameEntity;
@@ -11,7 +10,6 @@ import me.gravitinos.aigame.common.packet.PacketOutDestroyEntity;
 import me.gravitinos.aigame.common.packet.PacketOutSpawnEntity;
 import me.gravitinos.aigame.common.packet.PacketOutSpawnPlayer;
 import me.gravitinos.aigame.common.util.SharedPalette;
-import me.gravitinos.aigame.server.player.ServerPlayer;
 
 import java.util.HashSet;
 
@@ -67,12 +65,11 @@ public class ServerWorld extends GameWorld {
         });
     }
 
+
     @Override
     public synchronized void playerLeaveWorld(EntityPlayer player) {
         super.playerLeaveWorld(player);
         Packet packetDestroy = new PacketOutDestroyEntity(player.getId());
-        getPlayers().forEach(p -> {
-            p.getConnection().sendPacket(packetDestroy);
-        });
+        getPlayers().forEach(p -> p.getConnection().sendPacket(packetDestroy));
     }
 }

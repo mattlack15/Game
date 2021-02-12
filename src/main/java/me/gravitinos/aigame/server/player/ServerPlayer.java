@@ -26,7 +26,7 @@ public class ServerPlayer extends EntityPlayer {
 
     private UUID tpConfirmation = null;
 
-    public ServerPlayer(GameWorld world, UUID id, String name,  PlayerConnection connection) {
+    public ServerPlayer(GameWorld world, UUID id, String name, PlayerConnection connection) {
         super(world, id, connection);
         this.setName(name);
     }
