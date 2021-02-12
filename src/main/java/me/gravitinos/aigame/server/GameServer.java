@@ -81,7 +81,7 @@ public class GameServer extends SecuredTCPServer {
         PacketHandlerServer.REGISTRY.put(PacketInDisconnect.class, new PacketHandlerDisconnect());
         PacketHandlerServer.REGISTRY.put(PacketInOutPing.class, new PacketHandlerPing());
         PacketHandlerServer.REGISTRY.put(PacketInPlayerInteract.class, new PacketHandlerPlayerInteract());
-        PacketHandlerServer.REGISTRY.put(PacketInOutAudio.class, new PacketHandlerVoice());
+        PacketHandlerServer.REGISTRY.put(PacketPlayAudio.class, new PacketHandlerVoice());
     }
 
     private AtomicBoolean stopping = new AtomicBoolean(false);

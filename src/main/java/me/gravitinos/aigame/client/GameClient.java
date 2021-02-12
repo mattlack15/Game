@@ -27,6 +27,7 @@ import javax.swing.*;
 import java.awt.*;
 import java.awt.event.*;
 import java.awt.image.BufferedImage;
+import java.io.*;
 import java.util.*;
 import java.util.List;
 
@@ -273,6 +274,7 @@ public class GameClient {
         double m = 0;
         boolean waitTillNextTick = false;
         long lastFpsCount = System.currentTimeMillis();
+        startCrashDetector();
         while (true) {
             if (System.currentTimeMillis() - lastFpsCount >= 1000) {
                 currentFPS = fpsCounter;
@@ -501,7 +503,42 @@ public class GameClient {
         }
     }
 
+    private long lastTick = -1;
+
+    public void startCrashDetector() {
+        new Thread(() -> {
+            try {
+                while (true) {
+                    long l = lastTick;
+                    if (l == -2)
+                        return;
+                    if (l != -1 && (System.currentTimeMillis() - l) > 4000) {
+                        try (PrintStream writer = new PrintStream(System.out)) {
+                            Map<?, ?> liveThreads = Thread.getAllStackTraces();
+                            for (Object o : liveThreads.keySet()) {
+                                Thread key = (Thread) o;
+                                writer.append("Thread Name: ").append(key.getName()).append("\n");
+                                writer.append("Status: ").append(key.getState().toString()).append("\n");
+                                StackTraceElement[] trace = (StackTraceElement[]) liveThreads.get(key);
+                                for (StackTraceElement stackTraceElement : trace) {
+                                    writer.append("\tat ").append(String.valueOf(stackTraceElement)).append("\n");
+                                }
+                            }
+                            writer.flush();
+                        }
+                        return;
+                    }
+                    Thread.sleep(10);
+                }
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        }).start();
+    }
+
     public void tick() {
+        lastTick = System.currentTimeMillis();
+
         world.tick();
 
         world.getEntities().forEach(GameEntity::tick);
@@ -532,8 +569,6 @@ public class GameClient {
             }
 
         }
-
-        audioProvider.tick();
 
         receivePackets();
         sendPackets();

@@ -1,8 +1,7 @@
 package me.gravitinos.aigame.client.voice;
 
 import me.gravitinos.aigame.Main;
-import me.gravitinos.aigame.common.connection.Packet;
-import me.gravitinos.aigame.common.packet.PacketInOutAudio;
+import me.gravitinos.aigame.common.packet.PacketPlayAudio;
 import net.ultragrav.serializer.compressors.StandardCompressor;
 
 import javax.sound.sampled.*;
@@ -11,6 +10,7 @@ import java.util.zip.Deflater;
 public class VoiceProvider implements AutoCloseable {
     private TargetDataLine line;
     private boolean enabled = false;
+    int frameSize = Main.getAudioFormat().getFrameSize();
     private boolean active = false;
 
     public VoiceProvider() {
@@ -30,7 +30,7 @@ public class VoiceProvider implements AutoCloseable {
         enabled = true;
     }
 
-    public PacketInOutAudio getPacket() {
+    public synchronized PacketPlayAudio getPacket() {
 
         if(!active)
             return null;
@@ -44,40 +44,31 @@ public class VoiceProvider implements AutoCloseable {
         byte[] b = new byte[avail];
         line.read(b, 0, b.length);
 
-        //Compress
-        Deflater deflater = new Deflater();
-        deflater.setInput(b);
-        deflater.finish();
-        b = new byte[avail];
-        int am = deflater.deflate(b);
-        deflater.end();
-
-        //Resize
-        if(b.length != am) {
-            byte[] old = b;
-            b = new byte[am];
-            System.arraycopy(old, 0, b, 0, b.length);
-        }
+        b = StandardCompressor.instance.compress(b);
 
         //Create and return packet
-        return new PacketInOutAudio(b, Main.getAudioFormat().getFrameSize(), true);
+        return new PacketPlayAudio(b, frameSize, true);
     }
 
-    public boolean isEnabled() {
+    public synchronized boolean isEnabled() {
         return enabled;
     }
 
-    public boolean isActive() {
+    public synchronized boolean isActive() {
         return active;
     }
 
-    public void start() {
+    public synchronized void start() {
+        if(active)
+            return;
         line.start();
         line.flush();
         active = true;
     }
 
-    public void stop() {
+    public synchronized void stop() {
+        if(!active)
+            return;
         line.stop();
         line.flush();
         active = false;

@@ -6,7 +6,6 @@ import me.gravitinos.aigame.client.render.block.BlockRenderAir;
 import me.gravitinos.aigame.client.render.block.BlockRenderLightGreen;
 import me.gravitinos.aigame.client.render.block.BlockRendererWall;
 import me.gravitinos.aigame.client.render.entity.*;
-import me.gravitinos.aigame.common.blocks.GameBlock;
 import me.gravitinos.aigame.common.blocks.GameBlockType;
 import me.gravitinos.aigame.common.entity.EntityBullet;
 import me.gravitinos.aigame.common.entity.EntityFire;
@@ -39,6 +38,6 @@ public class ClientRegistryInitializer {
         PacketHandlerClient.REGISTRY.put(PacketInOutPing.class, new PacketHandlerPing());
         PacketHandlerClient.REGISTRY.put(PacketOutBlockChange.class, new PacketHandlerBlockChange());
         PacketHandlerClient.REGISTRY.put(PacketOutTitle.class, new PacketHandlerTitle());
-        PacketHandlerClient.REGISTRY.put(PacketInOutAudio.class, new PacketHandlerAudio());
+        PacketHandlerClient.REGISTRY.put(PacketPlayAudio.class, new PacketHandlerAudio());
     }
 }

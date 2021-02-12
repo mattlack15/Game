@@ -18,7 +18,7 @@ public abstract class Packet {
 
         registerPacket(PacketInOutChatMessage.class);
         registerPacket(PacketInOutPing.class);
-        registerPacket(PacketInOutAudio.class);
+        registerPacket(PacketPlayAudio.class);
 
         registerPacket(PacketInPlayerInfo.class);
         registerPacket(PacketInPlayerMove.class);
