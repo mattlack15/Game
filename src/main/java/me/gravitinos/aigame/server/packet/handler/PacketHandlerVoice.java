@@ -9,9 +9,9 @@ public class PacketHandlerVoice implements PacketHandlerServer {
     public void handlePacket(ServerPlayer player, Packet packet, GameServer server) {
         server.world.getPlayers().forEach(p -> {
             try {
-                if(p != player) {
+                //if(p != player) {
                     p.getConnection().sendPacket(packet);
-                }
+                //}
             } catch (Exception e) {
                 e.printStackTrace();
             }

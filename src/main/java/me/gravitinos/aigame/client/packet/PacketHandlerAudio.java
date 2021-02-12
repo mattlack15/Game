@@ -4,6 +4,7 @@ import me.gravitinos.aigame.client.GameClient;
 import me.gravitinos.aigame.common.connection.Packet;
 import me.gravitinos.aigame.common.packet.PacketInOutAudio;
 import net.ultragrav.serializer.GravSerializer;
+import net.ultragrav.serializer.compressors.StandardCompressor;
 
 import java.util.zip.DataFormatException;
 import java.util.zip.Inflater;
@@ -23,7 +24,7 @@ public class PacketHandlerAudio implements PacketHandlerClient {
             byte[] buf = new byte[2048];
             while(!inflater.finished()) {
                 try {
-                    int am = inflater.inflate(buf, 0, buf.length);
+                    int am = inflater.inflate(buf);
                     serializer.append(buf, am);
                 } catch (DataFormatException e) {
                     e.printStackTrace();

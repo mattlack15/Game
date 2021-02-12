@@ -3,6 +3,7 @@ package me.gravitinos.aigame.client.voice;
 import me.gravitinos.aigame.Main;
 import me.gravitinos.aigame.common.connection.Packet;
 import me.gravitinos.aigame.common.packet.PacketInOutAudio;
+import net.ultragrav.serializer.compressors.StandardCompressor;
 
 import javax.sound.sampled.*;
 import java.util.zip.Deflater;
@@ -44,21 +45,22 @@ public class VoiceProvider implements AutoCloseable {
         line.read(b, 0, b.length);
 
         //Compress
-//        Deflater deflater = new Deflater();
-//        deflater.setInput(b);
-//        deflater.finish();
-//        int am = deflater.deflate(b);
-//        deflater.end();
-//
-//        //Resize
-//        if(b.length != am) {
-//            byte[] old = b;
-//            b = new byte[am];
-//            System.arraycopy(old, 0, b, 0, b.length);
-//        }
+        Deflater deflater = new Deflater();
+        deflater.setInput(b);
+        deflater.finish();
+        b = new byte[avail];
+        int am = deflater.deflate(b);
+        deflater.end();
+
+        //Resize
+        if(b.length != am) {
+            byte[] old = b;
+            b = new byte[am];
+            System.arraycopy(old, 0, b, 0, b.length);
+        }
 
         //Create and return packet
-        return new PacketInOutAudio(b, Main.getAudioFormat().getFrameSize(), false);
+        return new PacketInOutAudio(b, Main.getAudioFormat().getFrameSize(), true);
     }
 
     public boolean isEnabled() {
